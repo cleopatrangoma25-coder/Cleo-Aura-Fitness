@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "stage": "cleo-aura-fitness-stage",
+    "default": "cleo-aura-fitness-stage"
+  }
+}

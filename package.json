@@ -10,6 +10,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
+    "test:rules": "vitest run firestore.test.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "sync:lint": "syncpack lint",
@@ -19,10 +20,12 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
-    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test"
+    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "deploy:stage": "pnpm --filter web build:stage && firebase deploy --only hosting -P stage"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
+    "@firebase/rules-unit-testing": "^5.0.0",
     "eslint": "^8.57.0",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
