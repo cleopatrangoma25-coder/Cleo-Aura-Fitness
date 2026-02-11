@@ -1,12 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import {
-  BrowserRouter,
-  Link,
-  Navigate,
-  Route,
-  Routes,
-  useNavigate,
-} from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -15,14 +8,12 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth'
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db, hasFirebaseConfig } from './lib/firebase'
+import { TraineeDashboard } from './features/dashboard/TraineeDashboard'
+import { WorkoutForm } from './features/workouts/WorkoutForm'
+import { RecoveryForm } from './features/recovery/RecoveryForm'
+import { HistoryTimeline } from './features/timeline/HistoryTimeline'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -39,13 +30,6 @@ const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
   { value: 'nutritionist', label: 'Nutritionist / Dietitian' },
   { value: 'counsellor', label: 'Counsellor' },
 ]
-
-const ROLE_COPY: Record<UserRole, string> = {
-  trainee: 'Trainee base experience: log your fitness and wellbeing in one place.',
-  trainer: 'Trainer base experience: review trainee training and recovery trends.',
-  nutritionist: 'Nutritionist base experience: review nutrition habits and energy patterns.',
-  counsellor: 'Counsellor base experience: review mood, stress, and sleep trends.',
-}
 
 function AuthScreen() {
   const navigate = useNavigate()
@@ -220,7 +204,9 @@ function RoleSelectionScreen({
         {ROLE_OPTIONS.map(option => (
           <button
             className={`rounded border px-3 py-2 text-left ${
-              selectedRole === option.value ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200'
+              selectedRole === option.value
+                ? 'border-emerald-600 bg-emerald-50'
+                : 'border-slate-200'
             }`}
             key={option.value}
             onClick={() => setSelectedRole(option.value)}
@@ -245,7 +231,52 @@ function RoleSelectionScreen({
   )
 }
 
-function AppShell({
+function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
+  async function logout() {
+    await signOut(auth)
+  }
+
+  if (!profile.role) {
+    return <Navigate replace to="/role-select" />
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-5">
+      <header className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
+            <p className="text-sm text-slate-600">Signed in as {user.email}</p>
+          </div>
+          <button className="rounded border px-3 py-2 text-sm" onClick={logout} type="button">
+            Logout
+          </button>
+        </div>
+        <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app">
+            Home
+          </Link>
+          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/workouts/new">
+            Log Workout
+          </Link>
+          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/recovery/new">
+            Log Recovery
+          </Link>
+          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/history">
+            History
+          </Link>
+          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/settings">
+            Settings
+          </Link>
+        </nav>
+      </header>
+
+      <Outlet context={{ user, profile }} />
+    </div>
+  )
+}
+
+function SettingsScreen({
   user,
   profile,
   onProfileUpdated,
@@ -294,61 +325,38 @@ function AppShell({
     }
   }
 
-  async function logout() {
-    await signOut(auth)
-  }
-
-  if (!profile.role) {
-    return <Navigate replace to="/role-select" />
-  }
-
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
-          <p className="text-sm text-slate-600">Signed in as {user.email}</p>
-        </div>
-        <button className="rounded border px-3 py-2 text-sm" onClick={logout} type="button">
-          Logout
+    <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-semibold">Account settings</h2>
+      <p className="mt-2 text-sm text-slate-600">
+        Role: {roleLabel} (immutable after first selection)
+      </p>
+
+      <label className="mt-4 grid gap-1 text-sm">
+        Display name
+        <input
+          className="rounded border px-3 py-2"
+          onChange={event => setDisplayName(event.target.value)}
+          value={displayName}
+        />
+      </label>
+
+      <div className="mt-3 flex gap-2">
+        <button
+          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          disabled={isSavingName}
+          onClick={saveDisplayName}
+          type="button"
+        >
+          {isSavingName ? 'Saving...' : 'Update display name'}
         </button>
-      </header>
+        <Link className="rounded border px-3 py-2 text-sm" to="/app">
+          Back to home
+        </Link>
+      </div>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold">Base Experience: {roleLabel}</h2>
-        <p className="mt-2 text-sm text-slate-600">{ROLE_COPY[profile.role]}</p>
-      </section>
-
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold">Account settings</h2>
-        <p className="mt-2 text-sm text-slate-600">Role: {roleLabel} (immutable after first selection)</p>
-
-        <label className="mt-4 grid gap-1 text-sm">
-          Display name
-          <input
-            className="rounded border px-3 py-2"
-            onChange={event => setDisplayName(event.target.value)}
-            value={displayName}
-          />
-        </label>
-
-        <div className="mt-3 flex gap-2">
-          <button
-            className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={isSavingName}
-            onClick={saveDisplayName}
-            type="button"
-          >
-            {isSavingName ? 'Saving...' : 'Update display name'}
-          </button>
-          <Link className="rounded border px-3 py-2 text-sm" to="/app">
-            Back to home
-          </Link>
-        </div>
-
-        {settingsMessage ? <p className="mt-2 text-sm text-slate-600">{settingsMessage}</p> : null}
-      </section>
-    </div>
+      {settingsMessage ? <p className="mt-2 text-sm text-slate-600">{settingsMessage}</p> : null}
+    </section>
   )
 }
 
@@ -424,7 +432,8 @@ function MilestoneOneApp() {
   if (!hasFirebaseConfig) {
     return (
       <main className="mx-auto mt-10 max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
-        Firebase config is missing. Add Vite env vars for auth and Firestore before running Milestone 1.
+        Firebase config is missing. Add Vite env vars for auth and Firestore before running
+        Milestone 1.
       </main>
     )
   }
@@ -443,12 +452,17 @@ function MilestoneOneApp() {
         ) : null}
 
         <Routes>
-          <Route element={authUser ? <Navigate replace to="/app" /> : <AuthScreen />} path="/auth" />
+          <Route
+            element={authUser ? <Navigate replace to="/app" /> : <AuthScreen />}
+            path="/auth"
+          />
           <Route
             element={
               authUser && profile ? (
                 <RoleSelectionScreen
-                  onRoleAssigned={role => setProfile(current => (current ? { ...current, role } : current))}
+                  onRoleAssigned={role =>
+                    setProfile(current => (current ? { ...current, role } : current))
+                  }
                   profile={profile}
                   user={authUser}
                 />
@@ -461,29 +475,34 @@ function MilestoneOneApp() {
           <Route
             element={
               authUser && profile ? (
-                <AppShell
-                  onProfileUpdated={displayName =>
-                    setProfile(current => (current ? { ...current, displayName } : current))
-                  }
-                  profile={profile}
-                  user={authUser}
-                />
+                <AppShell profile={profile} user={authUser} />
               ) : (
                 <Navigate replace to="/auth" />
               )
             }
             path="/app"
-          />
-          <Route
-            element={
-              authUser && profile ? (
-                <AppShell
+          >
+            <Route index element={<TraineeDashboard />} />
+            <Route element={<WorkoutForm />} path="workouts/new" />
+            <Route element={<RecoveryForm />} path="recovery/new" />
+            <Route element={<HistoryTimeline />} path="history" />
+            <Route
+              element={
+                <SettingsScreen
                   onProfileUpdated={displayName =>
                     setProfile(current => (current ? { ...current, displayName } : current))
                   }
-                  profile={profile}
-                  user={authUser}
+                  profile={profile!}
+                  user={authUser!}
                 />
+              }
+              path="settings"
+            />
+          </Route>
+          <Route
+            element={
+              authUser && profile ? (
+                <Navigate replace to="/app/settings" />
               ) : (
                 <Navigate replace to="/auth" />
               )
