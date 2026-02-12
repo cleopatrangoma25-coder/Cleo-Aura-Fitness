@@ -121,6 +121,7 @@ export function TeamAccessManager() {
               Invite code: <span className="font-mono font-semibold">{inviteOutput.code}</span>
             </p>
             <p className="mt-1 break-all text-slate-600">Share link: {inviteOutput.link}</p>
+            <p className="mt-1 text-slate-500">Expires in 7 days.</p>
           </div>
         ) : null}
       </Card>
@@ -137,6 +138,11 @@ export function TeamAccessManager() {
                 <article className="rounded border p-3 text-sm" key={invite.code}>
                   <p className="font-mono">{invite.code}</p>
                   <p className="text-slate-600">Role: {invite.role}</p>
+                  {invite.expiresAt ? (
+                    <p className="text-xs text-slate-500">
+                      Expires: {new Date(invite.expiresAt.seconds * 1000).toLocaleDateString()}
+                    </p>
+                  ) : null}
                 </article>
               ))
           )}

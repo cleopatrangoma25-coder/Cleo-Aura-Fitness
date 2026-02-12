@@ -28,4 +28,5 @@
 - Add automated security scan (GitHub Advanced Security or npm audit in CI).
 - Expire invite codes after acceptance; store createdAt + TTL.
 - Document secrets handling via env (no secrets in repo).
+- Optional: enable Sentry DSN env for frontend error capture; add Firebase budget alert + Crashlytics/Perf Monitoring alerts.
 

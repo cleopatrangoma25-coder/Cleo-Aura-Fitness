@@ -8,6 +8,7 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   type Firestore,
 } from 'firebase/firestore'
@@ -37,6 +38,8 @@ type TeamView = TeamMember & { grant: Grant | null }
 function randomInviteCode(): string {
   return Math.random().toString(36).slice(2, 10).toUpperCase()
 }
+
+const INVITE_TTL_DAYS = 7
 
 async function fetchTeamData(traineeId: string) {
   const [teamSnapshot, grantSnapshot, inviteSnapshot] = await Promise.all([
@@ -93,6 +96,7 @@ async function fetchTeamData(traineeId: string) {
         acceptedByUid: data.acceptedByUid ?? null,
         acceptedByEmail: data.acceptedByEmail ?? null,
         updatedAt: data.updatedAt,
+        expiresAt: data.expiresAt,
       } as Invite
     })
     .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
@@ -133,6 +137,7 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
         createdBy: currentUserId,
         status: 'pending',
         createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromMillis(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000),
         acceptedAt: null,
         acceptedByUid: null,
         acceptedByEmail: null,
@@ -247,6 +252,7 @@ export async function acceptInvite(params: {
   const invite = inviteSnapshot.data() as {
     status?: string
     role?: ProfessionalRole
+    expiresAt?: Timestamp
   }
 
   if (invite.status !== 'pending') {
@@ -255,6 +261,11 @@ export async function acceptInvite(params: {
 
   if (!invite.role || invite.role !== user.role) {
     throw new Error('Invite role does not match your account role.')
+  }
+
+  const expiresAt = invite.expiresAt?.toMillis?.()
+  if (expiresAt && expiresAt <= Date.now()) {
+    throw new Error('Invite has expired.')
   }
 
   const noModules: ModulePermissions = {

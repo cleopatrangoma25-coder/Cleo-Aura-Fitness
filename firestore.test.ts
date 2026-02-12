@@ -224,6 +224,42 @@ describe('Firestore Security Rules', () => {
       await assertFails(setDoc(workoutRef, { type: 'cardio', date: '2026-02-11' }))
     })
 
+    it('denies accepting expired invite', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      const inviteCode = 'EXPIRED1'
+
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'invites', inviteCode), {
+          code: inviteCode,
+          traineeId,
+          role: 'trainer',
+          createdBy: traineeId,
+          status: 'pending',
+          expiresAt: new Date(Date.now() - 60 * 60 * 1000),
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const inviteRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'invites', inviteCode)
+
+      await assertFails(
+        updateDoc(inviteRef, {
+          status: 'accepted',
+          acceptedByUid: trainerId,
+          traineeId,
+          role: 'trainer',
+        })
+      )
+    })
+
     it('denies professional read if module is not granted', async () => {
       const traineeId = 'trainee123'
       const nutritionistId = 'nutritionist123'
