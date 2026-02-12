@@ -3,7 +3,14 @@ import { z } from 'zod'
 export const ProfessionalRoleEnum = z.enum(['trainer', 'nutritionist', 'counsellor'])
 export type ProfessionalRole = z.infer<typeof ProfessionalRoleEnum>
 
-export const MODULE_KEYS = ['workouts', 'recovery', 'nutrition', 'wellbeing', 'progress', 'wearables'] as const
+export const MODULE_KEYS = [
+  'workouts',
+  'recovery',
+  'nutrition',
+  'wellbeing',
+  'progress',
+  'wearables',
+] as const
 export type ModuleKey = (typeof MODULE_KEYS)[number]
 
 export const ModulePermissionsSchema = z.object({
@@ -51,6 +58,7 @@ export const InviteSchema = z.object({
   acceptedByUid: z.string().nullable().default(null),
   acceptedByEmail: z.string().email().nullable().default(null),
   updatedAt: z.unknown(),
+  expiresAt: z.unknown().optional(),
 })
 export type Invite = z.infer<typeof InviteSchema>
 

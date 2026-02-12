@@ -138,11 +138,22 @@ export function TeamAccessManager() {
                 <article className="rounded border p-3 text-sm" key={invite.code}>
                   <p className="font-mono">{invite.code}</p>
                   <p className="text-slate-600">Role: {invite.role}</p>
-                  {invite.expiresAt ? (
-                    <p className="text-xs text-slate-500">
-                      Expires: {new Date(invite.expiresAt.seconds * 1000).toLocaleDateString()}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    const expiresAt =
+                      typeof invite.expiresAt === 'object' && invite.expiresAt
+                        ? (invite.expiresAt as { toMillis?: () => number; seconds?: number })
+                        : null
+                    const expires =
+                      expiresAt?.toMillis?.() ??
+                      (typeof expiresAt?.seconds === 'number'
+                        ? expiresAt.seconds * 1000
+                        : undefined)
+                    return expires ? (
+                      <p className="text-xs text-slate-500">
+                        Expires: {new Date(expires).toLocaleDateString()}
+                      </p>
+                    ) : null
+                  })()}
                 </article>
               ))
           )}

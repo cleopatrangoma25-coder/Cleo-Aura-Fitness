@@ -25,9 +25,17 @@ export function setMonitoringUser(user: MonitoringUser | null) {
   currentUser = user
 }
 
+function normalizeExtra(extra: unknown): Record<string, unknown> | undefined {
+  if (!extra) return undefined
+  if (typeof extra === 'object' && !Array.isArray(extra)) return extra as Record<string, unknown>
+  return { detail: extra }
+}
+
 export async function captureError(event: MonitoringEvent) {
+  const normalizedExtra = normalizeExtra(event.extra)
   const payload = {
     ...event,
+    extra: normalizedExtra,
     environment,
     href: typeof window !== 'undefined' ? window.location.href : '',
     user: currentUser,
@@ -37,9 +45,10 @@ export async function captureError(event: MonitoringEvent) {
   if (sentryEnabled && Sentry) {
     const message = `${event.source}: ${event.message}`
     if (event.stack) {
-      Sentry.captureException(new Error(message), { extra: { ...event.extra, stack: event.stack } })
+      const sentryExtra = { ...(normalizedExtra ?? {}), stack: event.stack }
+      Sentry.captureException(new Error(message), { extra: sentryExtra })
     } else {
-      Sentry.captureMessage(message, { level: 'error', extra: event.extra })
+      Sentry.captureMessage(message, { level: 'error', extra: normalizedExtra })
     }
   }
 
@@ -93,7 +102,11 @@ export function initMonitoring() {
   window.addEventListener('unhandledrejection', event => {
     const reason = event.reason
     const reasonMessage =
-      reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : 'Unhandled rejection'
+      reason instanceof Error
+        ? reason.message
+        : typeof reason === 'string'
+          ? reason
+          : 'Unhandled rejection'
     void captureError({
       source: 'unhandledrejection',
       message: reasonMessage,
