@@ -1,35 +1,29 @@
 {
-  "indexes": [],
-  "fieldOverrides": [
+  "indexes": [
     {
-      "collectionGroup": "workouts",
-      "fieldPath": "notes",
-      "indexes": []
+      "collectionGroup": "invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     },
     {
-      "collectionGroup": "recovery",
-      "fieldPath": "notes",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "nutritionDays",
-      "fieldPath": "notes",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "wellbeingDays",
-      "fieldPath": "notes",
-      "indexes": []
+      "collectionGroup": "invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "expiresAt", "order": "ASCENDING" },
+        { "fieldPath": "traineeId", "order": "ASCENDING" }
+      ]
     },
     {
       "collectionGroup": "progressMeasurements",
-      "fieldPath": "notes",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "wearablesSummary",
-      "fieldPath": "notes",
-      "indexes": []
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "traineeId", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "DESCENDING" }
+      ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }
