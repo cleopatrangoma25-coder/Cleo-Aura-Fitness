@@ -9,6 +9,7 @@ import { TimelineEntry } from '../timeline/TimelineEntry'
 import { useProfessionalClients } from '../team/useProfessionalClients'
 import { useProgressMeasurements } from '../progress/useProgressMeasurements'
 import { useWearablesSummary } from '../wearables/useWearablesSummary'
+import { useSessions } from '../sessions/useSessions'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -110,6 +111,7 @@ export function TraineeDashboard() {
     error: clientsError,
     summary,
   } = useProfessionalClients(user.uid, isProfessional)
+  const { sessions, loading: sessionsLoading, error: sessionsError } = useSessions('upcoming')
   const activeClients = clients.filter(client => client.active)
   const roleFocusedClientsList = activeClients.filter(client => {
     if (profile.role === 'trainer') {
@@ -236,6 +238,44 @@ export function TraineeDashboard() {
               <p className="mt-1 text-sm text-amber-600">Body metrics and strength snapshots.</p>
             </Link>
           </div>
+
+          <Card className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold">Upcoming coach sessions</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Sessions posted by trainers and nutritionists.
+                </p>
+              </div>
+            </div>
+            {sessionsLoading ? (
+              <p className="mt-2 text-sm text-slate-500">Loading sessions...</p>
+            ) : sessionsError ? (
+              <p className="mt-2 text-sm text-red-600">{sessionsError}</p>
+            ) : sessions.length === 0 ? (
+              <p className="mt-2 text-sm text-slate-500">No sessions have been posted yet.</p>
+            ) : (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {sessions
+                  .filter(session => session.audience === 'all' || session.audience === 'trainee')
+                  .slice(0, 4)
+                  .map(session => (
+                    <article className="rounded border bg-slate-50 p-3" key={session.id}>
+                      <p className="text-sm font-semibold text-slate-900">{session.title}</p>
+                      <p className="mt-1 text-sm text-slate-600 line-clamp-3">
+                        {session.description}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        When: {session.scheduledAt?.toDate().toLocaleString() ?? 'TBD'}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        By: {session.createdByName} ({session.createdByRole})
+                      </p>
+                    </article>
+                  ))}
+              </div>
+            )}
+          </Card>
 
           <Card className="p-5">
             <h3 className="text-lg font-semibold">Progress Analytics</h3>

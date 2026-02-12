@@ -153,6 +153,17 @@ service cloud.firestore {
       }
     }
 
+    // Public sessions (created by professionals)
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isProfessionalUser()
+        && request.resource.data.title is string
+        && request.resource.data.scheduledAt is timestamp
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.createdByRole == currentUserRole();
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

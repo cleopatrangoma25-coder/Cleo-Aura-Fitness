@@ -62,6 +62,11 @@ const WearableSyncImportPage = lazy(() =>
 const ProUpgradePage = lazy(() =>
   import('./features/billing/ProUpgradePage').then(m => ({ default: m.ProUpgradePage }))
 )
+const ProfessionalSessions = lazy(() =>
+  import('./features/sessions/ProfessionalSessions').then(m => ({
+    default: m.ProfessionalSessions,
+  }))
+)
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 type UserPlan = 'free' | 'pro'
@@ -470,9 +475,14 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
             </>
           ) : null}
           {isProfessional ? (
-            <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/invite">
-              Accept Invite
-            </Link>
+            <>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/invite">
+                Accept Invite
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/sessions">
+                Sessions
+              </Link>
+            </>
           ) : null}
           {isTrainee ? (
             <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/history">
@@ -853,6 +863,16 @@ function MilestoneOneApp() {
                   )
                 }
                 path="invite"
+              />
+              <Route
+                element={
+                  profile?.role && profile.role !== 'trainee' ? (
+                    <ProfessionalSessions />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="sessions"
               />
               <Route
                 element={
