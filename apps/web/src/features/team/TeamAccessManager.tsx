@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { MODULE_KEYS, type ModuleKey, type ProfessionalRole } from '@repo/shared'
 import type { User } from 'firebase/auth'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 import { MODULE_LABELS, useTeamAccess } from './useTeamAccess'
 
 type AppContext = {
@@ -21,17 +23,25 @@ export function TeamAccessManager() {
   const [inviteOutput, setInviteOutput] = useState<{ code: string; link: string } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
-  const { loading, error, invites, members, createInvite, toggleModule, setGrantActive, revokeAccess } =
-    useTeamAccess(user.uid, user.uid)
+  const {
+    loading,
+    error,
+    invites,
+    members,
+    createInvite,
+    toggleModule,
+    setGrantActive,
+    revokeAccess,
+  } = useTeamAccess(user.uid, user.uid)
 
   if (profile.role !== 'trainee') {
     return (
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">Team access</h2>
         <p className="mt-2 text-sm text-slate-600">
           Team management is available only for trainee accounts.
         </p>
-      </section>
+      </Card>
     )
   }
 
@@ -77,14 +87,14 @@ export function TeamAccessManager() {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">Team members & permissions</h2>
         <p className="mt-1 text-sm text-slate-600">
           Invite professionals, control module access, and revoke instantly.
         </p>
-      </div>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="font-semibold">Create invite code</h3>
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="grid gap-1 text-sm">
@@ -101,14 +111,9 @@ export function TeamAccessManager() {
               ))}
             </select>
           </label>
-          <button
-            className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={isCreatingInvite}
-            onClick={handleCreateInvite}
-            type="button"
-          >
+          <Button disabled={isCreatingInvite} onClick={handleCreateInvite} type="button">
             {isCreatingInvite ? 'Creating...' : 'Generate Invite'}
-          </button>
+          </Button>
         </div>
         {inviteOutput ? (
           <div className="mt-3 rounded border bg-slate-50 p-3 text-sm">
@@ -118,9 +123,9 @@ export function TeamAccessManager() {
             <p className="mt-1 break-all text-slate-600">Share link: {inviteOutput.link}</p>
           </div>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="font-semibold">Pending invites</h3>
         <div className="mt-3 space-y-2">
           {invites.filter(invite => invite.status === 'pending').length === 0 ? (
@@ -136,9 +141,9 @@ export function TeamAccessManager() {
               ))
           )}
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="font-semibold">Team access</h3>
         {loading ? <p className="mt-3 text-sm text-slate-500">Loading team members...</p> : null}
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
@@ -158,20 +163,24 @@ export function TeamAccessManager() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      className="rounded border px-3 py-1.5 text-sm"
-                      onClick={() => handleToggleGrant(member.uid, !(member.grant?.active ?? false))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleToggleGrant(member.uid, !(member.grant?.active ?? false))
+                      }
                       type="button"
                     >
                       {member.grant?.active === false ? 'Enable' : 'Disable'}
-                    </button>
-                    <button
-                      className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700"
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={() => handleRevoke(member.uid)}
                       type="button"
                     >
                       Revoke
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -191,7 +200,7 @@ export function TeamAccessManager() {
             ))
           )}
         </div>
-      </section>
+      </Card>
     </section>
   )
 }

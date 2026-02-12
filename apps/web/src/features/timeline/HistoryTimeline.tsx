@@ -1,4 +1,5 @@
 import { useOutletContext } from 'react-router-dom'
+import { Card } from '@repo/ui/Card'
 import type { User } from 'firebase/auth'
 import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
@@ -48,12 +49,12 @@ export function HistoryTimeline() {
 
   if (timeline.length === 0) {
     return (
-      <section className="rounded-xl border bg-white p-6 text-center shadow-sm">
+      <Card className="p-6 text-center">
         <h2 className="text-lg font-semibold">Your journey starts here</h2>
         <p className="mt-2 text-sm text-slate-600">
           Log your first workout or recovery session to begin tracking your progress.
         </p>
-      </section>
+      </Card>
     )
   }
 

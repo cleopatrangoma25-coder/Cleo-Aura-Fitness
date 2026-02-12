@@ -9,6 +9,8 @@ import {
   type MuscleGroup,
 } from '@repo/shared'
 import type { User } from 'firebase/auth'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 import { useWorkouts } from './useWorkouts'
 import { MuscleGroupPicker } from './MuscleGroupPicker'
 
@@ -75,22 +77,18 @@ export function WorkoutForm() {
 
   if (profile.role !== 'trainee') {
     return (
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">Access restricted</h2>
         <p className="mt-1 text-sm text-slate-600">Only trainees can log workouts.</p>
-        <button
-          className="mt-4 rounded border px-4 py-2 text-sm"
-          onClick={() => navigate('/app')}
-          type="button"
-        >
+        <Button variant="outline" className="mt-4" onClick={() => navigate('/app')} type="button">
           Back to home
-        </button>
-      </section>
+        </Button>
+      </Card>
     )
   }
 
   return (
-    <section className="rounded-xl border bg-white p-5 shadow-sm">
+    <Card className="p-5">
       <h2 className="text-xl font-semibold">Log Your Workout</h2>
       <p className="mt-1 text-sm text-slate-600">
         Track your training to see your progress over time.
@@ -192,22 +190,14 @@ export function WorkoutForm() {
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex gap-2">
-          <button
-            className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
-          >
+          <Button disabled={isSubmitting} type="submit">
             {isSubmitting ? 'Saving...' : 'Log Workout'}
-          </button>
-          <button
-            className="rounded border px-4 py-2 text-sm"
-            onClick={() => navigate('/app')}
-            type="button"
-          >
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/app')} type="button">
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
-    </section>
+    </Card>
   )
 }

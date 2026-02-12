@@ -1,6 +1,8 @@
 import { FormEvent, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import type { User } from 'firebase/auth'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 import { db } from '../../lib/firebase'
 import { acceptInvite } from './useTeamAccess'
 
@@ -57,7 +59,7 @@ export function InviteAcceptance() {
   }
 
   return (
-    <section className="rounded-xl border bg-white p-5 shadow-sm">
+    <Card className="p-5">
       <h2 className="text-xl font-semibold">Accept team invite</h2>
       <p className="mt-1 text-sm text-slate-600">
         Join a trainee&apos;s care team using their invite code.
@@ -95,24 +97,20 @@ export function InviteAcceptance() {
         ) : null}
 
         <div className="flex gap-2">
-          <button
-            className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
-          >
+          <Button disabled={isSubmitting} type="submit">
             {isSubmitting ? 'Accepting...' : 'Accept Invite'}
-          </button>
+          </Button>
           {success ? (
-            <button
-              className="rounded border px-4 py-2 text-sm"
+            <Button
+              variant="outline"
               onClick={() => navigate(`/app/client/${success.traineeId}`)}
               type="button"
             >
               Open client
-            </button>
+            </Button>
           ) : null}
         </div>
       </form>
-    </section>
+    </Card>
   )
 }

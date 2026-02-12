@@ -24,6 +24,8 @@ import { ProgressAnalyticsPage } from './features/progress/ProgressAnalyticsPage
 import { WearableSummaryForm } from './features/wearables/WearableSummaryForm'
 import { WearableSyncImportPage } from './features/wearables/WearableSyncImportPage'
 import { ProUpgradePage } from './features/billing/ProUpgradePage'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 type UserPlan = 'free' | 'pro'
@@ -154,15 +156,21 @@ function AuthScreen() {
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <div className="rounded-xl border border-emerald-200 bg-white/80 p-3">
               <p className="text-sm font-semibold text-slate-900">Low friction</p>
-              <p className="mt-1 text-xs text-slate-600">Daily check-ins are designed for under one minute.</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Daily check-ins are designed for under one minute.
+              </p>
             </div>
             <div className="rounded-xl border border-cyan-200 bg-white/80 p-3">
               <p className="text-sm font-semibold text-slate-900">Private by default</p>
-              <p className="mt-1 text-xs text-slate-600">Trainees control exactly what professionals can view.</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Trainees control exactly what professionals can view.
+              </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-sm font-semibold text-slate-900">Built for progress</p>
-              <p className="mt-1 text-xs text-slate-600">Workouts, recovery, nutrition, and wellbeing stay connected.</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Workouts, recovery, nutrition, and wellbeing stay connected.
+              </p>
             </div>
           </div>
         </div>
@@ -192,12 +200,18 @@ function AuthScreen() {
 
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-            Selected role: <span className="font-semibold">{ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}</span>
+            Selected role:{' '}
+            <span className="font-semibold">
+              {ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}
+            </span>
           </p>
           {mode === 'signup' ? (
             <>
               <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                Signing up as <span className="font-semibold">{ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}</span>
+                Signing up as{' '}
+                <span className="font-semibold">
+                  {ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}
+                </span>
               </p>
               <label className="grid gap-1 text-sm">
                 Display name
@@ -238,13 +252,9 @@ function AuthScreen() {
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <button
-            className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
-          >
+          <Button disabled={isSubmitting} type="submit">
             {isSubmitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Login'}
-          </button>
+          </Button>
 
           <p className="text-xs text-slate-500">
             {mode === 'signup'
@@ -312,7 +322,7 @@ function RoleSelectionScreen({
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-xl border bg-white p-6 shadow-sm">
+    <Card className="mx-auto w-full max-w-xl p-6">
       <h1 className="text-2xl font-semibold">Choose your role</h1>
       <p className="mt-2 text-sm text-slate-600">
         This is a one-time selection. Role changes require admin migration rules.
@@ -337,15 +347,10 @@ function RoleSelectionScreen({
 
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
-      <button
-        className="mt-4 rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-        disabled={isSaving}
-        onClick={saveRole}
-        type="button"
-      >
+      <Button className="mt-4" disabled={isSaving} onClick={saveRole} type="button">
         {isSaving ? 'Saving role...' : 'Save role'}
-      </button>
-    </section>
+      </Button>
+    </Card>
   )
 }
 
@@ -365,16 +370,16 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5">
-      <header className="rounded-xl border bg-white p-4 shadow-sm">
+      <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
             <p className="text-sm text-slate-600">Signed in as {user.email}</p>
             <p className="text-xs text-slate-500">Plan: {profile.plan.toUpperCase()}</p>
           </div>
-          <button className="rounded border px-3 py-2 text-sm" onClick={logout} type="button">
+          <Button variant="outline" onClick={logout} type="button">
             Logout
-          </button>
+          </Button>
         </div>
         <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
           <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app">
@@ -382,27 +387,45 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           </Link>
           {isTrainee ? (
             <>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/workouts/new">
+              <Link
+                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                to="/app/workouts/new"
+              >
                 Log Workout
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/recovery/new">
+              <Link
+                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                to="/app/recovery/new"
+              >
                 Log Recovery
               </Link>
               <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/check-in">
                 Daily Check-In
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/progress/new">
+              <Link
+                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                to="/app/progress/new"
+              >
                 Log Progress
               </Link>
               {hasProPlan ? (
                 <>
-                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
+                  <Link
+                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                    to="/app/analytics"
+                  >
                     Analytics
                   </Link>
-                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/wearables/new">
+                  <Link
+                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                    to="/app/wearables/new"
+                  >
                     Wearables
                   </Link>
-                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/wearables/import">
+                  <Link
+                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                    to="/app/wearables/import"
+                  >
                     Health Sync
                   </Link>
                   <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
@@ -430,7 +453,7 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
             Settings
           </Link>
         </nav>
-      </header>
+      </Card>
 
       <Outlet context={{ user, profile }} />
     </div>
@@ -506,7 +529,7 @@ function SettingsScreen({
   }
 
   return (
-    <section className="rounded-xl border bg-white p-5 shadow-sm">
+    <Card className="p-5">
       <h2 className="text-xl font-semibold">Account settings</h2>
       <p className="mt-2 text-sm text-slate-600">
         Role: {roleLabel} (immutable after first selection)
@@ -523,14 +546,9 @@ function SettingsScreen({
       </label>
 
       <div className="mt-3 flex gap-2">
-        <button
-          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-          disabled={isSavingName}
-          onClick={saveDisplayName}
-          type="button"
-        >
+        <Button disabled={isSavingName} onClick={saveDisplayName} type="button">
           {isSavingName ? 'Saving...' : 'Update display name'}
-        </button>
+        </Button>
         <Link className="rounded border px-3 py-2 text-sm" to="/app">
           Back to home
         </Link>
@@ -541,28 +559,27 @@ function SettingsScreen({
         <div className="grid gap-2 text-sm text-slate-600">
           {PLAN_OPTIONS.map(option => (
             <p key={option.value}>
-              <span className="font-medium text-slate-900">{option.label}</span>: {option.description}
+              <span className="font-medium text-slate-900">{option.label}</span>:{' '}
+              {option.description}
             </p>
           ))}
         </div>
         {profile.plan === 'free' ? (
-          <Link className="inline-block rounded border px-3 py-2 text-sm hover:bg-white" to="/app/upgrade">
+          <Link
+            className="inline-block rounded border px-3 py-2 text-sm hover:bg-white"
+            to="/app/upgrade"
+          >
             Open Pro Payment Page
           </Link>
         ) : (
-          <button
-            className="rounded border px-3 py-2 text-sm"
-            disabled={isSavingPlan}
-            onClick={savePlan}
-            type="button"
-          >
+          <Button variant="outline" disabled={isSavingPlan} onClick={savePlan} type="button">
             {isSavingPlan ? 'Saving plan...' : 'Downgrade to Free'}
-          </button>
+          </Button>
         )}
       </div>
 
       {settingsMessage ? <p className="mt-2 text-sm text-slate-600">{settingsMessage}</p> : null}
-    </section>
+    </Card>
   )
 }
 
@@ -707,20 +724,30 @@ function MilestoneOneApp() {
           >
             <Route index element={<TraineeDashboard />} />
             <Route
-              element={profile?.role === 'trainee' ? <WorkoutForm /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' ? <WorkoutForm /> : <Navigate replace to="/app" />
+              }
               path="workouts/new"
             />
             <Route
-              element={profile?.role === 'trainee' ? <RecoveryForm /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' ? <RecoveryForm /> : <Navigate replace to="/app" />
+              }
               path="recovery/new"
             />
             <Route
-              element={profile?.role === 'trainee' ? <DailyCheckIn /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' ? <DailyCheckIn /> : <Navigate replace to="/app" />
+              }
               path="check-in"
             />
             <Route
               element={
-                profile?.role === 'trainee' ? <ProgressMeasurementForm /> : <Navigate replace to="/app" />
+                profile?.role === 'trainee' ? (
+                  <ProgressMeasurementForm />
+                ) : (
+                  <Navigate replace to="/app" />
+                )
               }
               path="progress/new"
             />
@@ -801,7 +828,9 @@ function MilestoneOneApp() {
               path="client/:traineeId"
             />
             <Route
-              element={profile?.role === 'trainee' ? <HistoryTimeline /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' ? <HistoryTimeline /> : <Navigate replace to="/app" />
+              }
               path="history"
             />
             <Route
@@ -809,9 +838,7 @@ function MilestoneOneApp() {
                 <SettingsScreen
                   onProfileUpdated={(displayName, plan) =>
                     setProfile(current =>
-                      current
-                        ? { ...current, displayName, plan: plan ?? current.plan }
-                        : current
+                      current ? { ...current, displayName, plan: plan ?? current.plan } : current
                     )
                   }
                   profile={profile!}

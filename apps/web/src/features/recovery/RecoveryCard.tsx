@@ -1,10 +1,11 @@
 import { RECOVERY_TYPE_LABELS, type Recovery } from '@repo/shared'
+import { Card } from '@repo/ui/Card'
 
 export function RecoveryCard({ entry }: { entry: Recovery }) {
   const typeLabel = RECOVERY_TYPE_LABELS[entry.type]
 
   return (
-    <div className="rounded-xl border border-violet-100 bg-violet-50 p-4 shadow-sm">
+    <Card className="border-violet-100 bg-violet-50 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="font-semibold text-violet-900">{typeLabel}</h3>
@@ -16,6 +17,6 @@ export function RecoveryCard({ entry }: { entry: Recovery }) {
       </div>
 
       {entry.notes ? <p className="mt-2 text-sm italic text-violet-600">"{entry.notes}"</p> : null}
-    </div>
+    </Card>
   )
 }

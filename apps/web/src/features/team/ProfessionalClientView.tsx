@@ -3,6 +3,7 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { MUSCLE_GROUP_LABELS, type ModulePermissions } from '@repo/shared'
+import { Card } from '@repo/ui/Card'
 import { db } from '../../lib/firebase'
 import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
@@ -97,11 +98,16 @@ export function ProfessionalClientView() {
   }, [traineeId, user.uid])
 
   const isProfessional = useMemo(() => {
-    return profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+    return (
+      profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+    )
   }, [profile.role])
 
   const trainerInsights = useMemo(() => {
-    const { recentWorkouts, topMuscles, heatmap } = buildTrainerMuscleInsights(workoutsState.workouts, 14)
+    const { recentWorkouts, topMuscles, heatmap } = buildTrainerMuscleInsights(
+      workoutsState.workouts,
+      14
+    )
     const recentRecovery = recoveryState.entries.filter(entry => isWithinLastDays(entry.date, 14))
 
     return {
@@ -134,7 +140,8 @@ export function ProfessionalClientView() {
 
     return {
       totalCheckIns: recentNutrition.length,
-      onTrackRate: recentNutrition.length > 0 ? Math.round((onTrackCount / recentNutrition.length) * 100) : 0,
+      onTrackRate:
+        recentNutrition.length > 0 ? Math.round((onTrackCount / recentNutrition.length) * 100) : 0,
       dominantHydration,
       digestionNotes: countDigestionNotes(recentNutrition),
       avgEnergy: wellbeingAllowed ? avgEnergy : null,
@@ -152,7 +159,12 @@ export function ProfessionalClientView() {
     const moodSeries = recent
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(entry => ({ date: entry.date, mood: entry.mood, stress: entry.stress, sleep: entry.sleepQuality }))
+      .map(entry => ({
+        date: entry.date,
+        mood: entry.mood,
+        stress: entry.stress,
+        sleep: entry.sleepQuality,
+      }))
 
     return {
       moodAverage: average(recent.map(entry => entry.mood)),
@@ -163,19 +175,24 @@ export function ProfessionalClientView() {
       stressTrend:
         average(recent7.map(entry => entry.stress)) - average(previous7.map(entry => entry.stress)),
       sleepTrend:
-        average(recent7.map(entry => entry.sleepQuality)) - average(previous7.map(entry => entry.sleepQuality)),
+        average(recent7.map(entry => entry.sleepQuality)) -
+        average(previous7.map(entry => entry.sleepQuality)),
       moodSeries,
     }
   }, [wellbeingState.entries])
 
   const wearablesInsights = useMemo(() => {
     const recent = wearablesState.entries.filter(entry => isWithinLastDays(entry.date, 14))
-    const avgSteps = average(recent.map(entry => entry.steps).filter((value): value is number => value !== null))
+    const avgSteps = average(
+      recent.map(entry => entry.steps).filter((value): value is number => value !== null)
+    )
     const avgSleep = average(
       recent.map(entry => entry.sleepHours).filter((value): value is number => value !== null)
     )
     const avgRestingHr = average(
-      recent.map(entry => entry.restingHeartRateBpm).filter((value): value is number => value !== null)
+      recent
+        .map(entry => entry.restingHeartRateBpm)
+        .filter((value): value is number => value !== null)
     )
     const avgReadiness = average(
       recent.map(entry => entry.readinessScore).filter((value): value is number => value !== null)
@@ -192,10 +209,12 @@ export function ProfessionalClientView() {
 
   if (!isProfessional) {
     return (
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">Client access restricted</h2>
-        <p className="mt-2 text-sm text-slate-600">Only professional accounts can view shared client data.</p>
-      </section>
+        <p className="mt-2 text-sm text-slate-600">
+          Only professional accounts can view shared client data.
+        </p>
+      </Card>
     )
   }
 
@@ -209,24 +228,24 @@ export function ProfessionalClientView() {
 
   if (!grantActive) {
     return (
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">No active access</h2>
         <p className="mt-2 text-sm text-slate-600">
           This trainee has not granted active access, or access was revoked.
         </p>
-      </section>
+      </Card>
     )
   }
 
   return (
     <section className="space-y-5">
-      <header className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">Client {traineeId}&apos;s shared data</h2>
         <p className="mt-1 text-sm text-slate-600">Read-only view based on module permissions.</p>
-      </header>
+      </Card>
 
       {profile.role === 'trainer' && (workoutsAllowed || recoveryAllowed) ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Trainer insights (last 14 days)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <article className="rounded border p-3">
@@ -250,12 +269,17 @@ export function ProfessionalClientView() {
             Top muscle focus:{' '}
             {trainerInsights.topMuscles.length > 0
               ? trainerInsights.topMuscles
-                  .map(([muscle, count]) => `${MUSCLE_GROUP_LABELS[muscle as keyof typeof MUSCLE_GROUP_LABELS]} (${count})`)
+                  .map(
+                    ([muscle, count]) =>
+                      `${MUSCLE_GROUP_LABELS[muscle as keyof typeof MUSCLE_GROUP_LABELS]} (${count})`
+                  )
                   .join(', ')
               : 'No tagged workouts yet.'}
           </p>
           <div className="mt-4 rounded-lg border p-3">
-            <p className="text-sm font-medium text-slate-700">Muscle group heatmap (last 14 days)</p>
+            <p className="text-sm font-medium text-slate-700">
+              Muscle group heatmap (last 14 days)
+            </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {trainerInsights.heatmap.map(item => (
                 <article className="rounded border p-2" key={item.key}>
@@ -266,18 +290,20 @@ export function ProfessionalClientView() {
                   <div className="h-2 rounded bg-slate-100">
                     <div
                       className="h-2 rounded bg-amber-400"
-                      style={{ width: `${item.count === 0 ? 0 : Math.max(6, Math.round(item.ratio * 100))}%` }}
+                      style={{
+                        width: `${item.count === 0 ? 0 : Math.max(6, Math.round(item.ratio * 100))}%`,
+                      }}
                     />
                   </div>
                 </article>
               ))}
             </div>
           </div>
-        </section>
+        </Card>
       ) : null}
 
       {profile.role === 'nutritionist' && nutritionAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Nutrition insights (last 14 days)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <article className="rounded border p-3">
@@ -289,7 +315,9 @@ export function ProfessionalClientView() {
               <p className="text-xs text-slate-600">Meals on-track rate</p>
             </article>
             <article className="rounded border p-3">
-              <p className="text-2xl font-semibold capitalize">{nutritionInsights.dominantHydration}</p>
+              <p className="text-2xl font-semibold capitalize">
+                {nutritionInsights.dominantHydration}
+              </p>
               <p className="text-xs text-slate-600">Most common hydration status</p>
             </article>
           </div>
@@ -311,11 +339,11 @@ export function ProfessionalClientView() {
               </p>
             </article>
           </div>
-        </section>
+        </Card>
       ) : null}
 
       {profile.role === 'counsellor' && wellbeingAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Wellbeing insights (last 14 days)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-4">
             <article className="rounded border p-3">
@@ -359,19 +387,24 @@ export function ProfessionalClientView() {
             <div className="mt-2 flex items-end gap-1">
               {wellbeingInsights.moodSeries.slice(-10).map(point => (
                 <div className="flex flex-col items-center" key={point.date}>
-                  <div className="w-4 rounded-t bg-sky-400" style={{ height: `${point.mood * 12}px` }} />
+                  <div
+                    className="w-4 rounded-t bg-sky-400"
+                    style={{ height: `${point.mood * 12}px` }}
+                  />
                   <span className="mt-1 text-[10px] text-slate-500">{point.date.slice(5)}</span>
                 </div>
               ))}
             </div>
           </div>
-        </section>
+        </Card>
       ) : null}
 
       {wearablesAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Wearable insights (last 14 days)</h3>
-          {wearablesState.error ? <p className="mt-2 text-sm text-red-600">{wearablesState.error}</p> : null}
+          {wearablesState.error ? (
+            <p className="mt-2 text-sm text-red-600">{wearablesState.error}</p>
+          ) : null}
           <div className="mt-3 grid gap-3 sm:grid-cols-4">
             <article className="rounded border p-3">
               <p className="text-2xl font-semibold">{wearablesInsights.recentCount}</p>
@@ -393,13 +426,15 @@ export function ProfessionalClientView() {
           <p className="mt-3 text-sm text-slate-600">
             Average readiness score: {wearablesInsights.avgReadiness}
           </p>
-        </section>
+        </Card>
       ) : null}
 
       {workoutsAllowed ? (
         <section className="space-y-2">
           <h3 className="text-lg font-semibold">Workouts</h3>
-          {workoutsState.error ? <p className="text-sm text-red-600">{workoutsState.error}</p> : null}
+          {workoutsState.error ? (
+            <p className="text-sm text-red-600">{workoutsState.error}</p>
+          ) : null}
           {workoutsState.workouts.slice(0, 10).map(workout => (
             <WorkoutCard key={workout.id} workout={workout} />
           ))}
@@ -412,7 +447,9 @@ export function ProfessionalClientView() {
       {recoveryAllowed ? (
         <section className="space-y-2">
           <h3 className="text-lg font-semibold">Recovery</h3>
-          {recoveryState.error ? <p className="text-sm text-red-600">{recoveryState.error}</p> : null}
+          {recoveryState.error ? (
+            <p className="text-sm text-red-600">{recoveryState.error}</p>
+          ) : null}
           {recoveryState.entries.slice(0, 10).map(entry => (
             <RecoveryCard entry={entry} key={entry.id} />
           ))}
@@ -423,31 +460,37 @@ export function ProfessionalClientView() {
       ) : null}
 
       {nutritionAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Nutrition</h3>
-          {nutritionState.error ? <p className="text-sm text-red-600">{nutritionState.error}</p> : null}
+          {nutritionState.error ? (
+            <p className="text-sm text-red-600">{nutritionState.error}</p>
+          ) : null}
           <div className="mt-2 space-y-2">
             {nutritionState.entries.slice(0, 10).map(entry => (
               <article className="rounded border p-3 text-sm" key={entry.id}>
                 <p className="font-medium">{entry.date}</p>
                 <p className="text-slate-600">
-                  Meals on track: {entry.mealsOnTrack ? 'Yes' : 'No'} · Quality: {entry.mealQuality} ·
-                  Hydration: {entry.hydration}
+                  Meals on track: {entry.mealsOnTrack ? 'Yes' : 'No'} · Quality: {entry.mealQuality}{' '}
+                  · Hydration: {entry.hydration}
                 </p>
-                {entry.notes ? <p className="mt-1 italic text-slate-500">&quot;{entry.notes}&quot;</p> : null}
+                {entry.notes ? (
+                  <p className="mt-1 italic text-slate-500">&quot;{entry.notes}&quot;</p>
+                ) : null}
               </article>
             ))}
             {nutritionState.entries.length === 0 ? (
               <p className="text-sm text-slate-500">No nutrition entries shared yet.</p>
             ) : null}
           </div>
-        </section>
+        </Card>
       ) : null}
 
       {wellbeingAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <Card className="p-5">
           <h3 className="text-lg font-semibold">Wellbeing</h3>
-          {wellbeingState.error ? <p className="text-sm text-red-600">{wellbeingState.error}</p> : null}
+          {wellbeingState.error ? (
+            <p className="text-sm text-red-600">{wellbeingState.error}</p>
+          ) : null}
           <div className="mt-2 space-y-2">
             {wellbeingState.entries.slice(0, 10).map(entry => (
               <article className="rounded border p-3 text-sm" key={entry.id}>
@@ -456,25 +499,31 @@ export function ProfessionalClientView() {
                   Mood {entry.mood}/5 · Stress {entry.stress}/5 · Energy {entry.energy}/5 · Sleep{' '}
                   {entry.sleepQuality}/5
                 </p>
-                {entry.notes ? <p className="mt-1 italic text-slate-500">&quot;{entry.notes}&quot;</p> : null}
+                {entry.notes ? (
+                  <p className="mt-1 italic text-slate-500">&quot;{entry.notes}&quot;</p>
+                ) : null}
               </article>
             ))}
             {wellbeingState.entries.length === 0 ? (
               <p className="text-sm text-slate-500">No wellbeing entries shared yet.</p>
             ) : null}
           </div>
-        </section>
+        </Card>
       ) : null}
 
-      {!workoutsAllowed && !recoveryAllowed && !nutritionAllowed && !wellbeingAllowed && !wearablesAllowed ? (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+      {!workoutsAllowed &&
+      !recoveryAllowed &&
+      !nutritionAllowed &&
+      !wellbeingAllowed &&
+      !wearablesAllowed ? (
+        <Card className="p-5">
           <p className="text-sm text-slate-600">
             No modules are enabled yet. Ask the trainee to enable permissions in Team settings.
           </p>
           <Link className="mt-3 inline-block rounded border px-3 py-2 text-sm" to="/app/invite">
             Open invite page
           </Link>
-        </section>
+        </Card>
       ) : null}
     </section>
   )

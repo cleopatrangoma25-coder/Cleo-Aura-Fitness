@@ -4,6 +4,7 @@ import {
   INTENSITY_LABELS,
   type Workout,
 } from '@repo/shared'
+import { Card } from '@repo/ui/Card'
 
 export function WorkoutCard({ workout }: { workout: Workout }) {
   const typeLabel = WORKOUT_TYPE_LABELS[workout.type]
@@ -15,7 +16,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
   if (workout.intensity) meta.push(INTENSITY_LABELS[workout.intensity])
 
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm">
+    <Card className="p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="font-semibold">{workout.title}</h3>
@@ -41,6 +42,6 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
       {workout.notes ? (
         <p className="mt-2 text-sm italic text-slate-500">"{workout.notes}"</p>
       ) : null}
-    </div>
+    </Card>
   )
 }

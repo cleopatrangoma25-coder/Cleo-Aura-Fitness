@@ -1,5 +1,6 @@
 import { Link, useOutletContext } from 'react-router-dom'
 import { MUSCLE_GROUP_LABELS } from '@repo/shared'
+import { Card } from '@repo/ui/Card'
 import type { User } from 'firebase/auth'
 import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
@@ -86,14 +87,21 @@ export function TraineeDashboard() {
   const { user, profile } = useOutletContext<AppContext>()
   const isTrainee = profile.role === 'trainee'
   const hasProPlan = profile.plan === 'pro'
-  const isProfessional = profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+  const isProfessional =
+    profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
   const professionalTheme =
     profile.role && profile.role !== 'trainee' ? PROFESSIONAL_ROLE_THEME[profile.role] : null
 
   const { workouts, loading: workoutsLoading } = useWorkouts(user.uid, isTrainee)
   const { entries: recovery, loading: recoveryLoading } = useRecovery(user.uid, isTrainee)
-  const { entries: progressEntries, loading: progressLoading } = useProgressMeasurements(user.uid, isTrainee)
-  const { entries: wearableEntries, loading: wearablesLoading } = useWearablesSummary(user.uid, isTrainee)
+  const { entries: progressEntries, loading: progressLoading } = useProgressMeasurements(
+    user.uid,
+    isTrainee
+  )
+  const { entries: wearableEntries, loading: wearablesLoading } = useWearablesSummary(
+    user.uid,
+    isTrainee
+  )
   const timeline = useTimeline(workouts, recovery)
 
   const {
@@ -125,7 +133,9 @@ export function TraineeDashboard() {
   const traineeInsights = (() => {
     const last28Cutoff = new Date()
     last28Cutoff.setDate(last28Cutoff.getDate() - 27)
-    const last28Workouts = workouts.filter(workout => new Date(workout.date + 'T00:00:00') >= last28Cutoff)
+    const last28Workouts = workouts.filter(
+      workout => new Date(workout.date + 'T00:00:00') >= last28Cutoff
+    )
 
     const intenseWorkouts = workouts.filter(workout => workout.intensity === 'intense').length
     const recoveryCount = recovery.length
@@ -181,12 +191,14 @@ export function TraineeDashboard() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">
           Welcome back{profile.displayName ? `, ${profile.displayName}` : ''}
         </h2>
-        {profile.role ? <p className="mt-1 text-sm text-slate-600">{ROLE_COPY[profile.role]}</p> : null}
-      </section>
+        {profile.role ? (
+          <p className="mt-1 text-sm text-slate-600">{ROLE_COPY[profile.role]}</p>
+        ) : null}
+      </Card>
 
       {isTrainee ? (
         <>
@@ -196,7 +208,9 @@ export function TraineeDashboard() {
               to="/app/workouts/new"
             >
               <h3 className="text-lg font-semibold text-emerald-800">Log Workout</h3>
-              <p className="mt-1 text-sm text-emerald-600">Track training with muscle group tagging.</p>
+              <p className="mt-1 text-sm text-emerald-600">
+                Track training with muscle group tagging.
+              </p>
             </Link>
             <Link
               className="rounded-xl border bg-violet-50 p-5 shadow-sm transition-colors hover:bg-violet-100"
@@ -210,7 +224,9 @@ export function TraineeDashboard() {
               to="/app/check-in"
             >
               <h3 className="text-lg font-semibold text-sky-800">Daily Check-In</h3>
-              <p className="mt-1 text-sm text-sky-600">Nutrition and wellbeing in one quick flow.</p>
+              <p className="mt-1 text-sm text-sky-600">
+                Nutrition and wellbeing in one quick flow.
+              </p>
             </Link>
             <Link
               className="rounded-xl border bg-amber-50 p-5 shadow-sm transition-colors hover:bg-amber-100"
@@ -221,7 +237,7 @@ export function TraineeDashboard() {
             </Link>
           </div>
 
-          <section className="rounded-xl border bg-white p-5 shadow-sm">
+          <Card className="p-5">
             <h3 className="text-lg font-semibold">Progress Analytics</h3>
             <p className="mt-1 text-sm text-slate-600">
               Early milestone insights based on workouts, recovery, and measurements.
@@ -248,7 +264,10 @@ export function TraineeDashboard() {
                 <p className="mt-1 text-sm text-slate-600">
                   {traineeInsights.topMuscles.length > 0
                     ? traineeInsights.topMuscles
-                        .map(([group, score]) => `${MUSCLE_GROUP_LABELS[group as keyof typeof MUSCLE_GROUP_LABELS]} (${score})`)
+                        .map(
+                          ([group, score]) =>
+                            `${MUSCLE_GROUP_LABELS[group as keyof typeof MUSCLE_GROUP_LABELS]} (${score})`
+                        )
                         .join(', ')
                     : 'No workout muscle tagging yet.'}
                 </p>
@@ -258,7 +277,10 @@ export function TraineeDashboard() {
                 <p className="mt-1 text-sm text-slate-600">
                   {traineeInsights.weakestMuscles.length > 0
                     ? traineeInsights.weakestMuscles
-                        .map(([group, score]) => `${MUSCLE_GROUP_LABELS[group as keyof typeof MUSCLE_GROUP_LABELS]} (${score})`)
+                        .map(
+                          ([group, score]) =>
+                            `${MUSCLE_GROUP_LABELS[group as keyof typeof MUSCLE_GROUP_LABELS]} (${score})`
+                        )
                         .join(', ')
                     : 'No workout muscle tagging yet.'}
                 </p>
@@ -266,7 +288,9 @@ export function TraineeDashboard() {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <article className="rounded border p-3">
-                <p className="text-sm font-medium text-slate-700">Strength trend (latest vs previous)</p>
+                <p className="text-sm font-medium text-slate-700">
+                  Strength trend (latest vs previous)
+                </p>
                 <p className="mt-1 text-sm text-slate-600">
                   {traineeInsights.strengthDelta === null
                     ? 'Log at least two strength-based progress entries.'
@@ -274,7 +298,9 @@ export function TraineeDashboard() {
                 </p>
               </article>
               <article className="rounded border p-3">
-                <p className="text-sm font-medium text-slate-700">Bodyweight trend (latest vs previous)</p>
+                <p className="text-sm font-medium text-slate-700">
+                  Bodyweight trend (latest vs previous)
+                </p>
                 <p className="mt-1 text-sm text-slate-600">
                   {traineeInsights.weightDelta === null
                     ? 'Log at least two bodyweight entries.'
@@ -282,13 +308,16 @@ export function TraineeDashboard() {
                 </p>
               </article>
             </div>
-          </section>
+          </Card>
 
           {hasProPlan ? (
-            <section className="rounded-xl border bg-white p-5 shadow-sm">
+            <Card className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-semibold">Wearable Summary</h3>
-                <Link className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50" to="/app/wearables/new">
+                <Link
+                  className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50"
+                  to="/app/wearables/new"
+                >
                   Log Wearable Day
                 </Link>
               </div>
@@ -318,14 +347,18 @@ export function TraineeDashboard() {
                   No wearable summaries yet. Add your first daily summary.
                 </p>
               )}
-            </section>
+            </Card>
           ) : (
             <section className="rounded-xl border bg-amber-50 p-5 shadow-sm">
               <h3 className="text-lg font-semibold text-amber-900">Pro features available</h3>
               <p className="mt-1 text-sm text-amber-800">
-                Upgrade to Pro to unlock wearable summaries, advanced analytics, and team access controls.
+                Upgrade to Pro to unlock wearable summaries, advanced analytics, and team access
+                controls.
               </p>
-              <Link className="mt-3 inline-block rounded border border-amber-300 px-3 py-1.5 text-sm text-amber-900 hover:bg-amber-100" to="/app/settings">
+              <Link
+                className="mt-3 inline-block rounded border border-amber-300 px-3 py-1.5 text-sm text-amber-900 hover:bg-amber-100"
+                to="/app/settings"
+              >
                 Manage plan
               </Link>
             </section>
@@ -406,7 +439,8 @@ export function TraineeDashboard() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">
-                    {PROFESSIONAL_ROLE_LABELS[profile.role as Exclude<UserRole, 'trainee'>]} focus overview
+                    {PROFESSIONAL_ROLE_LABELS[profile.role as Exclude<UserRole, 'trainee'>]} focus
+                    overview
                   </h3>
                   <p className="mt-1 text-sm text-slate-600">
                     Snapshot of access granted to your role across connected clients.
@@ -416,7 +450,9 @@ export function TraineeDashboard() {
                   <span
                     className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${professionalTheme.chip}`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${professionalTheme.accentText.replace('text-', 'bg-')}`} />
+                    <span
+                      className={`h-2 w-2 rounded-full ${professionalTheme.accentText.replace('text-', 'bg-')}`}
+                    />
                     {PROFESSIONAL_ROLE_LABELS[profile.role as Exclude<UserRole, 'trainee'>]} view
                   </span>
                 ) : null}
@@ -426,30 +462,42 @@ export function TraineeDashboard() {
                   <>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.workoutClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing workouts</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.recoveryClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing recovery</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.wearablesClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing wearables</p>
@@ -460,30 +508,46 @@ export function TraineeDashboard() {
                   <>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.nutritionClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing nutrition</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
-                        {activeClients.filter(client => client.modules.nutrition && !client.modules.wellbeing).length}
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
+                        {
+                          activeClients.filter(
+                            client => client.modules.nutrition && !client.modules.wellbeing
+                          ).length
+                        }
                       </p>
                       <p className="text-xs text-slate-600">Nutrition-only clients</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {roleMissingAccess}
                       </p>
                       <p className="text-xs text-slate-600">Need nutrition permission</p>
@@ -494,30 +558,46 @@ export function TraineeDashboard() {
                   <>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.wellbeingClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing wellbeing</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
-                        {activeClients.filter(client => client.modules.wellbeing && !client.modules.nutrition).length}
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
+                        {
+                          activeClients.filter(
+                            client => client.modules.wellbeing && !client.modules.nutrition
+                          ).length
+                        }
                       </p>
                       <p className="text-xs text-slate-600">Wellbeing-only clients</p>
                     </article>
                     <article
                       className={`rounded-lg border p-3 ${
-                        professionalTheme ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}` : ''
+                        professionalTheme
+                          ? `${professionalTheme.surfaceSoft} ${professionalTheme.borderStrong}`
+                          : ''
                       }`}
                     >
-                      <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
+                      <p
+                        className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}
+                      >
                         {summary.wearablesClients}
                       </p>
                       <p className="text-xs text-slate-600">Clients sharing wearables</p>
@@ -543,7 +623,9 @@ export function TraineeDashboard() {
             >
               Accept New Invite
             </Link>
-            <p className="mt-2 text-sm text-slate-600">Join trainee teams and start reviewing shared data.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Join trainee teams and start reviewing shared data.
+            </p>
           </section>
 
           <section
@@ -555,14 +637,16 @@ export function TraineeDashboard() {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-semibold">
-              {profile.role === 'trainer'
-                ? 'Trainer client workspace'
-                : profile.role === 'nutritionist'
-                  ? 'Nutrition client workspace'
-                  : 'Counselling client workspace'}
+                {profile.role === 'trainer'
+                  ? 'Trainer client workspace'
+                  : profile.role === 'nutritionist'
+                    ? 'Nutrition client workspace'
+                    : 'Counselling client workspace'}
               </h3>
               {professionalTheme ? (
-                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${professionalTheme.chip}`}>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${professionalTheme.chip}`}
+                >
                   Role access
                 </span>
               ) : null}
@@ -571,7 +655,9 @@ export function TraineeDashboard() {
               Open each client to review only the modules they have granted to your role.
             </p>
 
-            {clientsLoading ? <p className="mt-3 text-sm text-slate-500">Loading clients...</p> : null}
+            {clientsLoading ? (
+              <p className="mt-3 text-sm text-slate-500">Loading clients...</p>
+            ) : null}
             {clientsError ? <p className="mt-3 text-sm text-red-600">{clientsError}</p> : null}
 
             {clients.length === 0 && !clientsLoading ? (

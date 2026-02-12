@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { MUSCLE_GROUP_LABELS, type MuscleGroup, type ProgressMeasurement } from '@repo/shared'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 import { useProgressMeasurements } from './useProgressMeasurements'
 import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
@@ -33,7 +35,7 @@ function formatWeekKey(date: Date): string {
   copy.setHours(0, 0, 0, 0)
   copy.setDate(copy.getDate() + 4 - (copy.getDay() || 7))
   const yearStart = new Date(copy.getFullYear(), 0, 1)
-  const weekNo = Math.ceil((((copy.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7)
+  const weekNo = Math.ceil(((copy.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7)
   return `${copy.getFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
@@ -101,7 +103,10 @@ function estimateWeeks(entries: Array<{ date: string }>): number {
   return Math.max(1, Math.ceil(diffDays / 7))
 }
 
-function toTrendPoints(entries: ProgressMeasurement[], key: keyof ProgressMeasurement): TrendPoint[] {
+function toTrendPoints(
+  entries: ProgressMeasurement[],
+  key: keyof ProgressMeasurement
+): TrendPoint[] {
   return entries
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -137,7 +142,15 @@ function pearsonCorrelation(pairs: Array<{ x: number; y: number }>): number | nu
   return Number((numerator / Math.sqrt(xDen * yDen)).toFixed(2))
 }
 
-function LineChart({ title, points, stroke }: { title: string; points: TrendPoint[]; stroke: string }) {
+function LineChart({
+  title,
+  points,
+  stroke,
+}: {
+  title: string
+  points: TrendPoint[]
+  stroke: string
+}) {
   const width = 360
   const height = 130
   const padding = 14
@@ -146,7 +159,10 @@ function LineChart({ title, points, stroke }: { title: string; points: TrendPoin
   const span = max - min || 1
 
   const coords = points.map((point, index) => {
-    const x = points.length === 1 ? width / 2 : padding + (index / (points.length - 1)) * (width - padding * 2)
+    const x =
+      points.length === 1
+        ? width / 2
+        : padding + (index / (points.length - 1)) * (width - padding * 2)
     const y = height - padding - ((point.value - min) / span) * (height - padding * 2)
     return { ...point, x, y }
   })
@@ -160,7 +176,14 @@ function LineChart({ title, points, stroke }: { title: string; points: TrendPoin
       ) : (
         <>
           <svg className="mt-2 h-[130px] w-full" viewBox={`0 0 ${width} ${height}`}>
-            <polyline fill="none" points={linePath} stroke={stroke} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+            <polyline
+              fill="none"
+              points={linePath}
+              stroke={stroke}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="3"
+            />
             {coords.map(point => (
               <circle cx={point.x} cy={point.y} fill={stroke} key={point.date} r="3.5">
                 <title>{`${point.date}: ${point.value}`}</title>
@@ -187,9 +210,18 @@ export function ProgressAnalyticsPage() {
   const { workouts } = useWorkouts(user.uid)
   const { entries: recovery } = useRecovery(user.uid)
 
-  const filteredProgress = useMemo(() => filterDatesByRange(entries, activeRange), [activeRange, entries])
-  const filteredWorkouts = useMemo(() => filterDatesByRange(workouts, activeRange), [activeRange, workouts])
-  const filteredRecovery = useMemo(() => filterDatesByRange(recovery, activeRange), [activeRange, recovery])
+  const filteredProgress = useMemo(
+    () => filterDatesByRange(entries, activeRange),
+    [activeRange, entries]
+  )
+  const filteredWorkouts = useMemo(
+    () => filterDatesByRange(workouts, activeRange),
+    [activeRange, workouts]
+  )
+  const filteredRecovery = useMemo(
+    () => filterDatesByRange(recovery, activeRange),
+    [activeRange, recovery]
+  )
   const sortedProgress = useMemo(
     () => filteredProgress.slice().sort((a, b) => b.date.localeCompare(a.date)),
     [filteredProgress]
@@ -212,7 +244,8 @@ export function ProgressAnalyticsPage() {
   const intenseWorkouts = filteredWorkouts.filter(item => item.intensity === 'intense').length
   const avgWorkoutsPerWeek = averagePerWeek(filteredWorkouts.length, weeksWindow)
   const avgRecoveryPerWeek = averagePerWeek(filteredRecovery.length, weeksWindow)
-  const recoveryVsIntensity = intenseWorkouts > 0 ? Number((filteredRecovery.length / intenseWorkouts).toFixed(2)) : 0
+  const recoveryVsIntensity =
+    intenseWorkouts > 0 ? Number((filteredRecovery.length / intenseWorkouts).toFixed(2)) : 0
 
   const weeklyRollups = useMemo(() => {
     const map = new Map<string, WeeklyRollup>()
@@ -260,7 +293,9 @@ export function ProgressAnalyticsPage() {
         avgWorkoutDuration:
           rollup.avgWorkoutDuration === null
             ? null
-            : Number((rollup.avgWorkoutDuration / (durationCounts.get(rollup.weekKey) ?? 1)).toFixed(1)),
+            : Number(
+                (rollup.avgWorkoutDuration / (durationCounts.get(rollup.weekKey) ?? 1)).toFixed(1)
+              ),
       }))
       .sort((a, b) => a.weekKey.localeCompare(b.weekKey))
   }, [filteredProgress, filteredRecovery, filteredWorkouts])
@@ -269,23 +304,21 @@ export function ProgressAnalyticsPage() {
     const perWeek = new Map<string, Record<MuscleGroup, number>>()
     for (const workout of filteredWorkouts) {
       const key = formatWeekKey(new Date(workout.date + 'T00:00:00'))
-      const row =
-        perWeek.get(key) ??
-        {
-          chest: 0,
-          back: 0,
-          shoulders: 0,
-          biceps: 0,
-          triceps: 0,
-          forearms: 0,
-          core: 0,
-          glutes: 0,
-          quadriceps: 0,
-          hamstrings: 0,
-          calves: 0,
-          hip_flexors: 0,
-          full_body: 0,
-        }
+      const row = perWeek.get(key) ?? {
+        chest: 0,
+        back: 0,
+        shoulders: 0,
+        biceps: 0,
+        triceps: 0,
+        forearms: 0,
+        core: 0,
+        glutes: 0,
+        quadriceps: 0,
+        hamstrings: 0,
+        calves: 0,
+        hip_flexors: 0,
+        full_body: 0,
+      }
       for (const group of workout.primaryMuscleGroups) row[group] += 2
       for (const group of workout.secondaryMuscleGroups) row[group] += 1
       perWeek.set(key, row)
@@ -296,7 +329,10 @@ export function ProgressAnalyticsPage() {
     for (const key of allKeys) {
       const row = perWeek.get(key)!
       for (const [group, count] of Object.entries(row)) {
-        globalCounts.set(group as MuscleGroup, (globalCounts.get(group as MuscleGroup) ?? 0) + Number(count))
+        globalCounts.set(
+          group as MuscleGroup,
+          (globalCounts.get(group as MuscleGroup) ?? 0) + Number(count)
+        )
       }
     }
 
@@ -329,7 +365,10 @@ export function ProgressAnalyticsPage() {
   }, [weeklyRollups])
 
   const correlations = useMemo(() => {
-    const byWeek = new Map<string, { workouts: number; strengthTotal: number | null; bodyWeight: number | null }>()
+    const byWeek = new Map<
+      string,
+      { workouts: number; strengthTotal: number | null; bodyWeight: number | null }
+    >()
     for (const workout of filteredWorkouts) {
       const key = formatWeekKey(new Date(workout.date + 'T00:00:00'))
       const item = byWeek.get(key) ?? { workouts: 0, strengthTotal: null, bodyWeight: null }
@@ -365,46 +404,46 @@ export function ProgressAnalyticsPage() {
 
   if (profile.role !== 'trainee') {
     return (
-      <section className="rounded-xl border bg-white p-6 shadow-sm">
+      <Card className="p-6">
         <h2 className="text-xl font-semibold">Access restricted</h2>
-        <p className="mt-2 text-sm text-slate-600">Analytics page is available only for trainees.</p>
-      </section>
+        <p className="mt-2 text-sm text-slate-600">
+          Analytics page is available only for trainees.
+        </p>
+      </Card>
     )
   }
 
   return (
     <section className="space-y-4">
-      <header className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">Progress Analytics</h2>
           <div className="flex items-center gap-2">
             {(['30d', '90d', 'all'] as RangeFilter[]).map(option => (
-              <button
-                className={`rounded border px-3 py-1.5 text-xs ${
-                  activeRange === option
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+              <Button
                 key={option}
+                size="sm"
+                variant={activeRange === option ? 'default' : 'outline'}
                 onClick={() => setActiveRange(option)}
                 type="button"
               >
                 {option.toUpperCase()}
-              </button>
+              </Button>
             ))}
-            <button
-              className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => exportCsv(sortedProgress)}
               type="button"
             >
               Export CSV
-            </button>
+            </Button>
           </div>
         </div>
         <p className="mt-1 text-sm text-slate-600">
           Trends for muscle balance, intensity vs recovery, and progress correlations.
         </p>
-      </header>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <article className="rounded-lg border bg-white p-4 shadow-sm">
@@ -421,7 +460,7 @@ export function ProgressAnalyticsPage() {
         </article>
       </div>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="text-lg font-semibold">Strength and Measurement Trends</h3>
         <div className="mt-3 grid gap-3 lg:grid-cols-2">
           <LineChart points={points.weight} stroke="#059669" title="Body Weight (kg)" />
@@ -430,9 +469,9 @@ export function ProgressAnalyticsPage() {
           <LineChart points={points.bench} stroke="#7c3aed" title="Bench 1RM (kg)" />
           <LineChart points={points.deadlift} stroke="#e11d48" title="Deadlift 1RM (kg)" />
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="text-lg font-semibold">Muscle Group Balance Over Time</h3>
         {muscleBalanceSeries.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">No workout tagging data for selected range.</p>
@@ -464,15 +503,17 @@ export function ProgressAnalyticsPage() {
                   ))}
                 </div>
                 <p className="mt-2 text-[11px] text-slate-600">
-                  {week.groups.map(item => `${MUSCLE_GROUP_LABELS[item.group]} ${item.pct}%`).join(' | ')}
+                  {week.groups
+                    .map(item => `${MUSCLE_GROUP_LABELS[item.group]} ${item.pct}%`)
+                    .join(' | ')}
                 </p>
               </article>
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="text-lg font-semibold">Recovery vs Intensity Weekly Trend</h3>
         {weeklyTrendPoints.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">No weekly trend data yet.</p>
@@ -485,15 +526,25 @@ export function ProgressAnalyticsPage() {
                   <p className="text-xs font-medium text-slate-600">{week.date}</p>
                   <div className="mt-2 space-y-2">
                     <div>
-                      <p className="mb-1 text-[11px] text-slate-600">Intense workouts: {week.intense}</p>
+                      <p className="mb-1 text-[11px] text-slate-600">
+                        Intense workouts: {week.intense}
+                      </p>
                       <div className="h-2 rounded bg-slate-100">
-                        <div className="h-2 rounded bg-amber-400" style={{ width: `${(week.intense / maxVal) * 100}%` }} />
+                        <div
+                          className="h-2 rounded bg-amber-400"
+                          style={{ width: `${(week.intense / maxVal) * 100}%` }}
+                        />
                       </div>
                     </div>
                     <div>
-                      <p className="mb-1 text-[11px] text-slate-600">Recovery entries: {week.recovery}</p>
+                      <p className="mb-1 text-[11px] text-slate-600">
+                        Recovery entries: {week.recovery}
+                      </p>
                       <div className="h-2 rounded bg-slate-100">
-                        <div className="h-2 rounded bg-emerald-500" style={{ width: `${(week.recovery / maxVal) * 100}%` }} />
+                        <div
+                          className="h-2 rounded bg-emerald-500"
+                          style={{ width: `${(week.recovery / maxVal) * 100}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -502,13 +553,15 @@ export function ProgressAnalyticsPage() {
             })}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="text-lg font-semibold">Correlation Signals</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <article className="rounded border p-3">
-            <p className="text-sm font-medium text-slate-700">Training frequency vs strength total</p>
+            <p className="text-sm font-medium text-slate-700">
+              Training frequency vs strength total
+            </p>
             <p className="mt-1 text-sm text-slate-600">
               {correlations.trainingVsStrength === null
                 ? 'Need at least 3 weekly data points.'
@@ -524,17 +577,22 @@ export function ProgressAnalyticsPage() {
             </p>
           </article>
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-semibold">Weekly Rollups</h3>
-          <Link className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50" to="/app/progress/new">
+          <Link
+            className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50"
+            to="/app/progress/new"
+          >
             Add measurement
           </Link>
         </div>
 
-        {loading ? <p className="mt-3 text-sm text-slate-500">Loading rollups and progress history...</p> : null}
+        {loading ? (
+          <p className="mt-3 text-sm text-slate-500">Loading rollups and progress history...</p>
+        ) : null}
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
         {!loading && !error && weeklyRollups.length === 0 ? (
@@ -563,7 +621,9 @@ export function ProgressAnalyticsPage() {
                     <td className="border px-2 py-1 text-right">{rollup.recovery}</td>
                     <td className="border px-2 py-1 text-right">{rollup.progressEntries}</td>
                     <td className="border px-2 py-1 text-right">
-                      {rollup.avgWorkoutDuration === null ? '-' : `${rollup.avgWorkoutDuration} min`}
+                      {rollup.avgWorkoutDuration === null
+                        ? '-'
+                        : `${rollup.avgWorkoutDuration} min`}
                     </td>
                   </tr>
                 ))}
@@ -571,9 +631,9 @@ export function ProgressAnalyticsPage() {
             </table>
           </div>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h3 className="text-lg font-semibold">Progress Measurement History</h3>
         {!loading && !error && sortedProgress.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No measurements yet.</p>
@@ -608,7 +668,7 @@ export function ProgressAnalyticsPage() {
             </table>
           </div>
         ) : null}
-      </section>
+      </Card>
     </section>
   )
 }

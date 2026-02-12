@@ -2,6 +2,8 @@ import { FormEvent, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
 import { db } from '../../lib/firebase'
 import { captureError } from '../../lib/monitoring'
 
@@ -83,19 +85,17 @@ export function ProUpgradePage({
 
   if (hasProPlan) {
     return (
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <h2 className="text-xl font-semibold">You are already on Pro</h2>
         <p className="mt-2 text-sm text-slate-600">Your Pro features are active on this account.</p>
-      </section>
+      </Card>
     )
   }
 
   return (
-    <section className="mx-auto max-w-xl rounded-xl border bg-white p-5 shadow-sm">
+    <Card className="mx-auto max-w-xl p-5">
       <h2 className="text-xl font-semibold">Upgrade to Pro</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Unlock analytics, wearables, and team features.
-      </p>
+      <p className="mt-1 text-sm text-slate-600">Unlock analytics, wearables, and team features.</p>
       <p className="mt-1 text-sm text-slate-600">Price: $9.99/month</p>
 
       <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
@@ -162,18 +162,15 @@ export function ProUpgradePage({
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        <button
-          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-          disabled={processing}
-          type="submit"
-        >
+        <Button disabled={processing} type="submit">
           {processing ? 'Processing payment...' : 'Pay and Upgrade'}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-3 text-xs text-slate-500">
-        Demo payment flow for milestone delivery. Integrate a provider (for example Stripe) before production billing.
+        Demo payment flow for milestone delivery. Integrate a provider (for example Stripe) before
+        production billing.
       </p>
-    </section>
+    </Card>
   )
 }
