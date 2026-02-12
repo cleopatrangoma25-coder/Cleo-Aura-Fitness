@@ -49,7 +49,8 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.status == 'accepted'
         && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.acceptedByUid == request.auth.uid
         && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.traineeId == traineeId
-        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.role == currentUserRole();
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.role == currentUserRole()
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.expiresAt > request.time;
     }
 
     function allModulesDisabled(modules) {
@@ -72,12 +73,15 @@ service cloud.firestore {
       allow delete: if false;
 
       match /invites/{inviteCode} {
-        allow read: if isTraineeOwner(traineeId) || (isSignedIn() && resource.data.status == 'pending');
-        allow create, delete: if isTraineeOwner(traineeId);
+        allow read: if isTraineeOwner(traineeId) || (isSignedIn() && resource.data.status == 'pending' && resource.data.expiresAt > request.time);
+        allow create, delete: if isTraineeOwner(traineeId)
+          && request.resource.data.expiresAt is timestamp
+          && request.resource.data.expiresAt > request.time;
         allow update: if isTraineeOwner(traineeId)
           || (
             isProfessionalUser()
             && resource.data.status == 'pending'
+            && resource.data.expiresAt > request.time
             && request.resource.data.status == 'accepted'
             && request.resource.data.acceptedByUid == request.auth.uid
             && request.resource.data.traineeId == traineeId

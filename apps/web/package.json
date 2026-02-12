@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "vite build --mode e2e && playwright test"
   },
   "dependencies": {
     "@repo/functions": "workspace:*",

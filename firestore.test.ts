@@ -138,6 +138,7 @@ describe('Firestore Security Rules', () => {
           role: 'trainer',
           createdBy: traineeId,
           status: 'pending',
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
         })
       })
 

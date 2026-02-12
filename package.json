@@ -21,11 +21,16 @@
     "version": "changeset version",
     "release": "changeset publish",
     "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
-    "deploy:stage": "pnpm --filter web build:stage && firebase deploy --only hosting -P stage"
+    "deploy:stage": "pnpm --filter web build:stage && firebase deploy --only hosting -P stage",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "audit:ci": "pnpm audit --prod --audit-level=high"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@changesets/cli": "^2.27.1",
     "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.58.2",
+    "axe-core": "^4.11.1",
     "eslint": "^8.57.0",
     "firebase": "^11.1.0",
     "husky": "^9.0.11",
