@@ -19,13 +19,13 @@ export function ProfessionalSessions() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [scheduledAt, setScheduledAt] = useState('')
-  const [audience, setAudience] = useState<'trainee' | 'trainer' | 'nutritionist' | 'all'>(
-    'trainee'
-  )
+  const [audience, setAudience] = useState<
+    'trainee' | 'trainer' | 'nutritionist' | 'counsellor' | 'all'
+  >('trainee')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  if (!role || (role !== 'trainer' && role !== 'nutritionist')) {
+  if (!role || (role !== 'trainer' && role !== 'nutritionist' && role !== 'counsellor')) {
     return (
       <Card className="p-5">
         <CardTitle>Sessions</CardTitle>
@@ -116,6 +116,7 @@ export function ProfessionalSessions() {
                 <option value="trainee">Trainees</option>
                 <option value="trainer">Trainers</option>
                 <option value="nutritionist">Nutritionists</option>
+                <option value="counsellor">Counsellors</option>
                 <option value="all">All roles</option>
               </select>
             </label>

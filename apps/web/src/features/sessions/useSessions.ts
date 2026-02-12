@@ -15,7 +15,7 @@ export type SessionOffer = {
   id: string
   title: string
   description: string
-  audience: 'trainee' | 'trainer' | 'nutritionist' | 'all'
+  audience: 'trainee' | 'trainer' | 'nutritionist' | 'counsellor' | 'all'
   scheduledAt: Timestamp | null
   createdAt: Timestamp | null
   createdByUid: string
@@ -70,7 +70,7 @@ export function useSessions(roleFilter: 'all' | 'upcoming' = 'upcoming') {
 export async function createSessionOffer(params: {
   title: string
   description: string
-  audience: 'trainee' | 'trainer' | 'nutritionist' | 'all'
+  audience: 'trainee' | 'trainer' | 'nutritionist' | 'counsellor' | 'all'
   scheduledAt: Date
   createdByUid: string
   createdByRole: 'trainer' | 'nutritionist' | 'counsellor'
