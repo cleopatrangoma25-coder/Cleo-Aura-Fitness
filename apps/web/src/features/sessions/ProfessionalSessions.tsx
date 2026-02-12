@@ -25,12 +25,17 @@ export function ProfessionalSessions() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  if (!role || (role !== 'trainer' && role !== 'nutritionist' && role !== 'counsellor')) {
+  const isAllowedRole = role === 'trainer' || role === 'nutritionist' || role === 'counsellor'
+  const professionalRole: 'trainer' | 'nutritionist' | 'counsellor' | null = isAllowedRole
+    ? (role as 'trainer' | 'nutritionist' | 'counsellor')
+    : null
+
+  if (!professionalRole) {
     return (
       <Card className="p-5">
         <CardTitle>Sessions</CardTitle>
         <p className="mt-2 text-sm text-slate-600">
-          Only trainers and nutritionists can publish sessions.
+          Only trainers, nutritionists, and counsellors can publish sessions.
         </p>
       </Card>
     )
@@ -51,7 +56,7 @@ export function ProfessionalSessions() {
         audience,
         scheduledAt: new Date(scheduledAt),
         createdByUid: user.uid,
-        createdByRole: role,
+        createdByRole: professionalRole,
         createdByName: profile.displayName ?? user.email ?? 'Coach',
       })
       setTitle('')
@@ -109,7 +114,14 @@ export function ProfessionalSessions() {
               <select
                 className="rounded border px-3 py-2"
                 onChange={event =>
-                  setAudience(event.target.value as 'trainee' | 'trainer' | 'nutritionist' | 'all')
+                  setAudience(
+                    event.target.value as
+                      | 'trainee'
+                      | 'trainer'
+                      | 'nutritionist'
+                      | 'counsellor'
+                      | 'all'
+                  )
                 }
                 value={audience}
               >
