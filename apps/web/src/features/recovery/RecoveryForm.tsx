@@ -12,7 +12,7 @@ type AppContext = {
 const RECOVERY_TYPES = Object.keys(RECOVERY_TYPE_LABELS) as RecoveryType[]
 
 export function RecoveryForm() {
-  const { user } = useOutletContext<AppContext>()
+  const { user, profile } = useOutletContext<AppContext>()
   const { addRecovery } = useRecovery(user.uid)
   const navigate = useNavigate()
 
@@ -25,6 +25,11 @@ export function RecoveryForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+
+    if (profile.role !== 'trainee') {
+      setError('Only trainees can log recovery.')
+      return
+    }
 
     const parsed = CreateRecoverySchema.safeParse({
       type,
@@ -47,6 +52,22 @@ export function RecoveryForm() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (profile.role !== 'trainee') {
+    return (
+      <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-semibold">Access restricted</h2>
+        <p className="mt-1 text-sm text-slate-600">Only trainees can log recovery entries.</p>
+        <button
+          className="mt-4 rounded border px-4 py-2 text-sm"
+          onClick={() => navigate('/app')}
+          type="button"
+        >
+          Back to home
+        </button>
+      </section>
+    )
   }
 
   return (

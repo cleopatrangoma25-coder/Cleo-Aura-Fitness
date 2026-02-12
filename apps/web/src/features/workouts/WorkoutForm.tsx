@@ -21,7 +21,7 @@ const WORKOUT_TYPES = Object.keys(WORKOUT_TYPE_LABELS) as WorkoutType[]
 const INTENSITIES = Object.keys(INTENSITY_LABELS) as Intensity[]
 
 export function WorkoutForm() {
-  const { user } = useOutletContext<AppContext>()
+  const { user, profile } = useOutletContext<AppContext>()
   const { addWorkout } = useWorkouts(user.uid)
   const navigate = useNavigate()
 
@@ -39,6 +39,11 @@ export function WorkoutForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+
+    if (profile.role !== 'trainee') {
+      setError('Only trainees can log workouts.')
+      return
+    }
 
     const parsed = CreateWorkoutSchema.safeParse({
       title: title.trim(),
@@ -66,6 +71,22 @@ export function WorkoutForm() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (profile.role !== 'trainee') {
+    return (
+      <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-semibold">Access restricted</h2>
+        <p className="mt-1 text-sm text-slate-600">Only trainees can log workouts.</p>
+        <button
+          className="mt-4 rounded border px-4 py-2 text-sm"
+          onClick={() => navigate('/app')}
+          type="button"
+        >
+          Back to home
+        </button>
+      </section>
+    )
   }
 
   return (

@@ -14,6 +14,12 @@ import { TraineeDashboard } from './features/dashboard/TraineeDashboard'
 import { WorkoutForm } from './features/workouts/WorkoutForm'
 import { RecoveryForm } from './features/recovery/RecoveryForm'
 import { HistoryTimeline } from './features/timeline/HistoryTimeline'
+import { DailyCheckIn } from './features/checkin/DailyCheckIn'
+import { TeamAccessManager } from './features/team/TeamAccessManager'
+import { InviteAcceptance } from './features/team/InviteAcceptance'
+import { ProfessionalClientView } from './features/team/ProfessionalClientView'
+import { ProgressMeasurementForm } from './features/progress/ProgressMeasurementForm'
+import { ProgressAnalyticsPage } from './features/progress/ProgressAnalyticsPage'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -37,8 +43,16 @@ function AuthScreen() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedRole, setSelectedRole] = useState<UserRole>('trainee')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const roleHighlights: Record<UserRole, string> = {
+    trainee: 'Track workouts, recovery, nutrition, and wellbeing.',
+    trainer: 'Review shared training and recovery trends from clients.',
+    nutritionist: 'Review meal habits, hydration, and nutrition notes.',
+    counsellor: 'Review mood, stress, sleep, and wellbeing patterns.',
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -50,6 +64,32 @@ function AuthScreen() {
         const credentials = await createUserWithEmailAndPassword(auth, email.trim(), password)
         if (displayName.trim()) {
           await updateProfile(credentials.user, { displayName: displayName.trim() })
+        }
+
+        await setDoc(
+          doc(db, 'users', credentials.user.uid),
+          {
+            uid: credentials.user.uid,
+            email: credentials.user.email ?? email.trim(),
+            displayName: displayName.trim(),
+            role: selectedRole,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+
+        if (selectedRole === 'trainee') {
+          await setDoc(
+            doc(db, 'trainees', credentials.user.uid),
+            {
+              uid: credentials.user.uid,
+              ownerId: credentials.user.uid,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          )
         }
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password)
@@ -65,76 +105,142 @@ function AuthScreen() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md rounded-xl border bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Milestone 1: sign up, log in, and bootstrap your role-based profile.
-      </p>
+    <section className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <article className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-100 via-cyan-50 to-slate-50 p-6 shadow-sm md:p-8">
+        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-emerald-300/30 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+        <div className="relative">
+          <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-wide text-emerald-800">
+            WELCOME TO CLEO AURA FITNESS
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+            One calm place for training, recovery, nutrition, and wellbeing
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm text-slate-700">
+            Start by choosing your role below. New accounts use this role during sign up, and
+            existing users can login right away.
+          </p>
 
-      <div className="mt-4 flex gap-2">
-        <button
-          className={`rounded px-3 py-2 text-sm ${mode === 'login' ? 'bg-slate-900 text-white' : 'bg-slate-100'}`}
-          onClick={() => setMode('login')}
-          type="button"
-        >
-          Login
-        </button>
-        <button
-          className={`rounded px-3 py-2 text-sm ${mode === 'signup' ? 'bg-slate-900 text-white' : 'bg-slate-100'}`}
-          onClick={() => setMode('signup')}
-          type="button"
-        >
-          Sign up
-        </button>
-      </div>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            {ROLE_OPTIONS.map(option => (
+              <button
+                className={`rounded-xl border px-3 py-3 text-left transition ${
+                  selectedRole === option.value
+                    ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                    : 'border-slate-200 bg-white/70 hover:border-slate-300'
+                }`}
+                key={option.value}
+                onClick={() => setSelectedRole(option.value)}
+                type="button"
+              >
+                <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                <p className="mt-1 text-xs text-slate-600">{roleHighlights[option.value]}</p>
+              </button>
+            ))}
+          </div>
 
-      <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
-        {mode === 'signup' ? (
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Low friction</p>
+              <p className="mt-1 text-xs text-slate-600">Daily check-ins are designed for under one minute.</p>
+            </div>
+            <div className="rounded-xl border border-cyan-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Private by default</p>
+              <p className="mt-1 text-xs text-slate-600">Trainees control exactly what professionals can view.</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Built for progress</p>
+              <p className="mt-1 text-xs text-slate-600">Workouts, recovery, nutrition, and wellbeing stay connected.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
+          <button
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              mode === 'login' ? 'bg-white shadow-sm' : 'text-slate-600'
+            }`}
+            onClick={() => setMode('login')}
+            type="button"
+          >
+            Login
+          </button>
+          <button
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              mode === 'signup' ? 'bg-white shadow-sm' : 'text-slate-600'
+            }`}
+            onClick={() => setMode('signup')}
+            type="button"
+          >
+            Sign up
+          </button>
+        </div>
+
+        <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            Selected role: <span className="font-semibold">{ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}</span>
+          </p>
+          {mode === 'signup' ? (
+            <>
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                Signing up as <span className="font-semibold">{ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}</span>
+              </p>
+              <label className="grid gap-1 text-sm">
+                Display name
+                <input
+                  className="rounded border px-3 py-2"
+                  onChange={event => setDisplayName(event.target.value)}
+                  placeholder="Your name"
+                  required
+                  value={displayName}
+                />
+              </label>
+            </>
+          ) : null}
+
           <label className="grid gap-1 text-sm">
-            Display name
+            Email
             <input
               className="rounded border px-3 py-2"
-              onChange={event => setDisplayName(event.target.value)}
-              placeholder="Your name"
-              value={displayName}
+              onChange={event => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              required
+              type="email"
+              value={email}
             />
           </label>
-        ) : null}
 
-        <label className="grid gap-1 text-sm">
-          Email
-          <input
-            className="rounded border px-3 py-2"
-            onChange={event => setEmail(event.target.value)}
-            placeholder="you@example.com"
-            required
-            type="email"
-            value={email}
-          />
-        </label>
+          <label className="grid gap-1 text-sm">
+            Password
+            <input
+              className="rounded border px-3 py-2"
+              minLength={6}
+              onChange={event => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
 
-        <label className="grid gap-1 text-sm">
-          Password
-          <input
-            className="rounded border px-3 py-2"
-            minLength={6}
-            onChange={event => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          <button
+            className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            {isSubmitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Login'}
+          </button>
 
-        <button
-          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          {isSubmitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Login'}
-        </button>
-      </form>
+          <p className="text-xs text-slate-500">
+            {mode === 'signup'
+              ? 'Role is assigned at sign up and controls your default app experience.'
+              : 'If you are new, switch to Sign up to create your account with the selected role.'}
+          </p>
+        </form>
+      </article>
     </section>
   )
 }
@@ -236,6 +342,10 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
     await signOut(auth)
   }
 
+  const isTrainee = profile.role === 'trainee'
+  const isProfessional =
+    profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+
   if (!profile.role) {
     return <Navigate replace to="/role-select" />
   }
@@ -256,15 +366,38 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app">
             Home
           </Link>
-          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/workouts/new">
-            Log Workout
-          </Link>
-          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/recovery/new">
-            Log Recovery
-          </Link>
-          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/history">
-            History
-          </Link>
+          {isTrainee ? (
+            <>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/workouts/new">
+                Log Workout
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/recovery/new">
+                Log Recovery
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/check-in">
+                Daily Check-In
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/progress/new">
+                Log Progress
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
+                Analytics
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
+                Team
+              </Link>
+            </>
+          ) : null}
+          {isProfessional ? (
+            <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/invite">
+              Accept Invite
+            </Link>
+          ) : null}
+          {isTrainee ? (
+            <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/history">
+              History
+            </Link>
+          ) : null}
           <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/settings">
             Settings
           </Link>
@@ -483,9 +616,56 @@ function MilestoneOneApp() {
             path="/app"
           >
             <Route index element={<TraineeDashboard />} />
-            <Route element={<WorkoutForm />} path="workouts/new" />
-            <Route element={<RecoveryForm />} path="recovery/new" />
-            <Route element={<HistoryTimeline />} path="history" />
+            <Route
+              element={profile?.role === 'trainee' ? <WorkoutForm /> : <Navigate replace to="/app" />}
+              path="workouts/new"
+            />
+            <Route
+              element={profile?.role === 'trainee' ? <RecoveryForm /> : <Navigate replace to="/app" />}
+              path="recovery/new"
+            />
+            <Route
+              element={profile?.role === 'trainee' ? <DailyCheckIn /> : <Navigate replace to="/app" />}
+              path="check-in"
+            />
+            <Route
+              element={
+                profile?.role === 'trainee' ? <ProgressMeasurementForm /> : <Navigate replace to="/app" />
+              }
+              path="progress/new"
+            />
+            <Route
+              element={profile?.role === 'trainee' ? <ProgressAnalyticsPage /> : <Navigate replace to="/app" />}
+              path="analytics"
+            />
+            <Route
+              element={profile?.role === 'trainee' ? <TeamAccessManager /> : <Navigate replace to="/app" />}
+              path="team"
+            />
+            <Route
+              element={
+                profile?.role && profile.role !== 'trainee' ? (
+                  <InviteAcceptance />
+                ) : (
+                  <Navigate replace to="/app" />
+                )
+              }
+              path="invite"
+            />
+            <Route
+              element={
+                profile?.role && profile.role !== 'trainee' ? (
+                  <ProfessionalClientView />
+                ) : (
+                  <Navigate replace to="/app" />
+                )
+              }
+              path="client/:traineeId"
+            />
+            <Route
+              element={profile?.role === 'trainee' ? <HistoryTimeline /> : <Navigate replace to="/app" />}
+              path="history"
+            />
             <Route
               element={
                 <SettingsScreen

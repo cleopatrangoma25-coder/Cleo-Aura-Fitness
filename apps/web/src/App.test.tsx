@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 const { mockOnAuthStateChanged } = vi.hoisted(() => ({
   mockOnAuthStateChanged: vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
@@ -31,8 +31,10 @@ vi.mock('firebase/firestore', () => ({
   updateDoc: vi.fn(async () => undefined),
   serverTimestamp: vi.fn(() => 'timestamp'),
   collection: vi.fn(() => ({})),
+  collectionGroup: vi.fn(() => ({})),
   addDoc: vi.fn(async () => ({ id: 'mock-id' })),
   query: vi.fn(() => ({})),
+  where: vi.fn(() => ({})),
   orderBy: vi.fn(() => ({})),
   getDocs: vi.fn(async () => ({ docs: [] })),
   Timestamp: { fromDate: vi.fn(() => ({})) },
@@ -61,9 +63,26 @@ describe('Milestone 1 app shell', () => {
   it('renders auth screen for unauthenticated users', async () => {
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Cleo Aura Fitness' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        name: 'One calm place for training, recovery, nutrition, and wellbeing',
+      })
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Cleo Aura Fitness/i)).toBeInTheDocument()
+    expect(screen.getByText('Trainer')).toBeInTheDocument()
+    expect(screen.getByText('Counsellor')).toBeInTheDocument()
     const loginButtons = screen.getAllByRole('button', { name: 'Login' })
     expect(loginButtons.length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
+  })
+
+  it('shows role-selected signup context when switching to sign up', async () => {
+    render(<App />)
+
+    const signUpButton = await screen.findByRole('button', { name: 'Sign up' })
+    fireEvent.click(signUpButton)
+
+    expect(screen.getByText(/Signing up as/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument()
   })
 })

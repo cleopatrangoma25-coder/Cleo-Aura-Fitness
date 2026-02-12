@@ -11,12 +11,19 @@ import {
 import { db } from '../../lib/firebase'
 import type { Workout, CreateWorkoutInput } from '@repo/shared'
 
-export function useWorkouts(traineeId: string) {
+export function useWorkouts(traineeId: string, enabled = true) {
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchWorkouts = useCallback(async () => {
+    if (!enabled) {
+      setWorkouts([])
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
@@ -47,7 +54,7 @@ export function useWorkouts(traineeId: string) {
     } finally {
       setLoading(false)
     }
-  }, [traineeId])
+  }, [enabled, traineeId])
 
   useEffect(() => {
     void fetchWorkouts()

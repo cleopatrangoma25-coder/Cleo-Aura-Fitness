@@ -11,12 +11,19 @@ import {
 import { db } from '../../lib/firebase'
 import type { Recovery, CreateRecoveryInput } from '@repo/shared'
 
-export function useRecovery(traineeId: string) {
+export function useRecovery(traineeId: string, enabled = true) {
   const [entries, setEntries] = useState<Recovery[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchEntries = useCallback(async () => {
+    if (!enabled) {
+      setEntries([])
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
@@ -42,7 +49,7 @@ export function useRecovery(traineeId: string) {
     } finally {
       setLoading(false)
     }
-  }, [traineeId])
+  }, [enabled, traineeId])
 
   useEffect(() => {
     void fetchEntries()

@@ -10,7 +10,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
-    "test:rules": "vitest run firestore.test.ts",
+    "test:rules": "firebase emulators:exec --only firestore \"pnpm exec vitest run firestore.test.ts\"",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "sync:lint": "syncpack lint",
@@ -27,11 +27,13 @@
     "@changesets/cli": "^2.27.1",
     "@firebase/rules-unit-testing": "^5.0.0",
     "eslint": "^8.57.0",
+    "firebase": "^11.1.0",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "syncpack": "^13.0.0",
-    "turbo": "^2.7.5"
+    "turbo": "^2.7.5",
+    "vitest": "^2.1.8"
   },
   "packageManager": "pnpm@8.15.6",
   "engines": {

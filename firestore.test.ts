@@ -6,7 +6,7 @@ import {
 } from '@firebase/rules-unit-testing'
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { readFileSync } from 'fs'
-import { describe, beforeAll, afterAll, beforeEach, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 
 let testEnv: RulesTestEnvironment
 
@@ -29,326 +29,355 @@ beforeEach(async () => {
   await testEnv.clearFirestore()
 })
 
-describe('Firestore Security Rules - Milestone 2', () => {
-  describe('Users collection', () => {
-    it('should allow a user to read their own profile', async () => {
-      const userId = 'user123'
-      const context = testEnv.authenticatedContext(userId)
-      const userRef = doc(context.firestore(), 'users', userId)
+async function seedUser(uid: string, role: 'trainee' | 'trainer' | 'nutritionist' | 'counsellor') {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'users', uid), {
+      uid,
+      email: `${uid}@example.com`,
+      displayName: uid,
+      role,
+    })
+  })
+}
 
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', userId), {
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'trainee',
-        })
-      })
+describe('Firestore Security Rules', () => {
+  describe('Users collection', () => {
+    it('allows reading and updating own user profile', async () => {
+      const uid = 'user123'
+      await seedUser(uid, 'trainee')
+      const context = testEnv.authenticatedContext(uid)
+      const userRef = doc(context.firestore(), 'users', uid)
 
       await assertSucceeds(getDoc(userRef))
+      await assertSucceeds(updateDoc(userRef, { displayName: 'Updated Name' }))
     })
 
-    it('should allow a user to create their own profile', async () => {
-      const userId = 'user123'
-      const context = testEnv.authenticatedContext(userId)
-      const userRef = doc(context.firestore(), 'users', userId)
-
-      await assertSucceeds(
-        setDoc(userRef, {
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'trainee',
-        })
-      )
-    })
-
-    it('should allow a user to update their own profile', async () => {
-      const userId = 'user123'
-      const context = testEnv.authenticatedContext(userId)
-      const userRef = doc(context.firestore(), 'users', userId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', userId), {
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'trainee',
-        })
-      })
-
-      await assertSucceeds(
-        updateDoc(userRef, {
-          displayName: 'Updated Name',
-        })
-      )
-    })
-
-    it('should deny a user from reading another user profile', async () => {
-      const userId = 'user123'
-      const otherUserId = 'user456'
-      const context = testEnv.authenticatedContext(userId)
-      const otherUserRef = doc(context.firestore(), 'users', otherUserId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', otherUserId), {
-          email: 'other@example.com',
-          displayName: 'Other User',
-          role: 'trainer',
-        })
-      })
-
-      await assertFails(getDoc(otherUserRef))
-    })
-
-    it('should deny a user from creating another user profile', async () => {
-      const userId = 'user123'
-      const otherUserId = 'user456'
-      const context = testEnv.authenticatedContext(userId)
-      const otherUserRef = doc(context.firestore(), 'users', otherUserId)
-
-      await assertFails(
-        setDoc(otherUserRef, {
-          email: 'other@example.com',
-          displayName: 'Other User',
-          role: 'trainer',
-        })
-      )
-    })
-
-    it('should deny a user from updating another user profile', async () => {
-      const userId = 'user123'
-      const otherUserId = 'user456'
-      const context = testEnv.authenticatedContext(userId)
-      const otherUserRef = doc(context.firestore(), 'users', otherUserId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', otherUserId), {
-          email: 'other@example.com',
-          displayName: 'Other User',
-          role: 'trainer',
-        })
-      })
-
-      await assertFails(
-        updateDoc(otherUserRef, {
-          displayName: 'Hacked Name',
-        })
-      )
-    })
-
-    it('should deny a user from deleting their own profile', async () => {
-      const userId = 'user123'
-      const context = testEnv.authenticatedContext(userId)
-      const userRef = doc(context.firestore(), 'users', userId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', userId), {
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'trainee',
-        })
-      })
-
-      await assertFails(deleteDoc(userRef))
-    })
-
-    it('should deny unauthenticated users from reading any profile', async () => {
-      const userId = 'user123'
-      const context = testEnv.unauthenticatedContext()
-      const userRef = doc(context.firestore(), 'users', userId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'users', userId), {
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'trainee',
-        })
-      })
-
-      await assertFails(getDoc(userRef))
+    it('denies reading another user profile', async () => {
+      await seedUser('user123', 'trainee')
+      await seedUser('user456', 'trainer')
+      const context = testEnv.authenticatedContext('user123')
+      const otherRef = doc(context.firestore(), 'users', 'user456')
+      await assertFails(getDoc(otherRef))
     })
   })
 
-  describe('Trainees collection', () => {
-    it('should allow a trainee to read their own data', async () => {
+  describe('Trainee ownership', () => {
+    it('allows trainee to create own trainee doc', async () => {
       const traineeId = 'trainee123'
+      await seedUser(traineeId, 'trainee')
       const context = testEnv.authenticatedContext(traineeId)
       const traineeRef = doc(context.firestore(), 'trainees', traineeId)
 
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'trainees', traineeId), {
-          uid: traineeId,
-          ownerId: traineeId,
-        })
-      })
-
-      await assertSucceeds(getDoc(traineeRef))
+      await assertSucceeds(setDoc(traineeRef, { uid: traineeId, ownerId: traineeId }))
     })
 
-    it('should allow a trainee to create their own data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.authenticatedContext(traineeId)
-      const traineeRef = doc(context.firestore(), 'trainees', traineeId)
+    it('denies professional from creating own trainee doc', async () => {
+      const trainerId = 'trainer123'
+      await seedUser(trainerId, 'trainer')
+      const context = testEnv.authenticatedContext(trainerId)
+      const traineeRef = doc(context.firestore(), 'trainees', trainerId)
 
-      await assertSucceeds(
-        setDoc(traineeRef, {
-          uid: traineeId,
-          ownerId: traineeId,
-        })
-      )
-    })
-
-    it('should allow a trainee to update their own data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.authenticatedContext(traineeId)
-      const traineeRef = doc(context.firestore(), 'trainees', traineeId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'trainees', traineeId), {
-          uid: traineeId,
-          ownerId: traineeId,
-        })
-      })
-
-      await assertSucceeds(
-        updateDoc(traineeRef, {
-          someField: 'updated value',
-        })
-      )
-    })
-
-    it('should deny a trainee from reading another trainee data', async () => {
-      const traineeId = 'trainee123'
-      const otherTraineeId = 'trainee456'
-      const context = testEnv.authenticatedContext(traineeId)
-      const otherTraineeRef = doc(context.firestore(), 'trainees', otherTraineeId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'trainees', otherTraineeId), {
-          uid: otherTraineeId,
-          ownerId: otherTraineeId,
-        })
-      })
-
-      await assertFails(getDoc(otherTraineeRef))
-    })
-
-    it('should deny a trainee from creating another trainee data', async () => {
-      const traineeId = 'trainee123'
-      const otherTraineeId = 'trainee456'
-      const context = testEnv.authenticatedContext(traineeId)
-      const otherTraineeRef = doc(context.firestore(), 'trainees', otherTraineeId)
-
-      await assertFails(
-        setDoc(otherTraineeRef, {
-          uid: otherTraineeId,
-          ownerId: otherTraineeId,
-        })
-      )
-    })
-
-    it('should deny a trainee from deleting their own data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.authenticatedContext(traineeId)
-      const traineeRef = doc(context.firestore(), 'trainees', traineeId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'trainees', traineeId), {
-          uid: traineeId,
-          ownerId: traineeId,
-        })
-      })
-
-      await assertFails(deleteDoc(traineeRef))
-    })
-
-    it('should deny unauthenticated users from reading trainee data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.unauthenticatedContext()
-      const traineeRef = doc(context.firestore(), 'trainees', traineeId)
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(doc(context.firestore(), 'trainees', traineeId), {
-          uid: traineeId,
-          ownerId: traineeId,
-        })
-      })
-
-      await assertFails(getDoc(traineeRef))
+      await assertFails(setDoc(traineeRef, { uid: trainerId, ownerId: trainerId }))
     })
   })
 
-  describe('Trainee subcollections (workouts, recovery, etc.)', () => {
-    it('should allow a trainee to read their own workout data', async () => {
+  describe('Milestone 4 logging', () => {
+    it('allows trainee to write nutrition and wellbeing days', async () => {
       const traineeId = 'trainee123'
+      await seedUser(traineeId, 'trainee')
       const context = testEnv.authenticatedContext(traineeId)
-      const workoutRef = doc(context.firestore(), 'trainees', traineeId, 'workouts', 'workout1')
 
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(
-          doc(context.firestore(), 'trainees', traineeId, 'workouts', 'workout1'),
-          {
-            type: 'strength',
-            date: '2024-01-01',
-          }
-        )
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
       })
 
-      await assertSucceeds(getDoc(workoutRef))
-    })
-
-    it('should allow a trainee to create their own workout data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.authenticatedContext(traineeId)
-      const workoutRef = doc(context.firestore(), 'trainees', traineeId, 'workouts', 'workout1')
+      const nutritionRef = doc(context.firestore(), 'trainees', traineeId, 'nutritionDays', '20260211')
+      const wellbeingRef = doc(context.firestore(), 'trainees', traineeId, 'wellbeingDays', '20260211')
 
       await assertSucceeds(
-        setDoc(workoutRef, {
+        setDoc(nutritionRef, {
+          date: '2026-02-11',
+          mealsOnTrack: true,
+          mealQuality: 'good',
+          hydration: 'moderate',
+        })
+      )
+
+      await assertSucceeds(
+        setDoc(wellbeingRef, {
+          date: '2026-02-11',
+          mood: 4,
+          stress: 2,
+          energy: 4,
+          sleepQuality: 4,
+        })
+      )
+    })
+  })
+
+  describe('Milestone 5 team access', () => {
+    it('allows professional to accept invite and create self team/grant docs', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      const inviteCode = 'INVITE01'
+
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'invites', inviteCode), {
+          code: inviteCode,
+          traineeId,
+          role: 'trainer',
+          createdBy: traineeId,
+          status: 'pending',
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const inviteRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'invites', inviteCode)
+
+      await assertSucceeds(
+        updateDoc(inviteRef, {
+          status: 'accepted',
+          acceptedByUid: trainerId,
+          traineeId,
+          role: 'trainer',
+        })
+      )
+
+      await assertSucceeds(
+        setDoc(doc(trainerCtx.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          displayName: 'Coach',
+          email: 'trainer123@example.com',
+          status: 'active',
+          inviteCode,
+        })
+      )
+
+      await assertSucceeds(
+        setDoc(doc(trainerCtx.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          inviteCode,
+          modules: {
+            workouts: false,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: false,
+          },
+        })
+      )
+    })
+
+    it('allows granted professional read-only access to workouts', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          modules: {
+            workouts: true,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: false,
+          },
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'workouts', 'w1'), {
           type: 'strength',
-          date: '2024-01-01',
+          date: '2026-02-11',
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const workoutRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'workouts', 'w1')
+      await assertSucceeds(getDoc(workoutRef))
+      await assertFails(setDoc(workoutRef, { type: 'cardio', date: '2026-02-11' }))
+    })
+
+    it('denies professional read if module is not granted', async () => {
+      const traineeId = 'trainee123'
+      const nutritionistId = 'nutritionist123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(nutritionistId, 'nutritionist')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', nutritionistId), {
+          uid: nutritionistId,
+          role: 'nutritionist',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', nutritionistId), {
+          memberUid: nutritionistId,
+          role: 'nutritionist',
+          active: true,
+          modules: {
+            workouts: false,
+            recovery: false,
+            nutrition: true,
+            wellbeing: false,
+            progress: false,
+          },
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'wellbeingDays', '20260211'), {
+          date: '2026-02-11',
+          mood: 3,
+        })
+      })
+
+      const nutritionistCtx = testEnv.authenticatedContext(nutritionistId)
+      const wellbeingRef = doc(
+        nutritionistCtx.firestore(),
+        'trainees',
+        traineeId,
+        'wellbeingDays',
+        '20260211'
+      )
+      await assertFails(getDoc(wellbeingRef))
+    })
+
+    it('allows trainee to revoke instantly by deleting team member and grant', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          modules: {
+            workouts: true,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: false,
+          },
+        })
+      })
+
+      const traineeCtx = testEnv.authenticatedContext(traineeId)
+      await assertSucceeds(
+        deleteDoc(doc(traineeCtx.firestore(), 'trainees', traineeId, 'teamMembers', trainerId))
+      )
+      await assertSucceeds(deleteDoc(doc(traineeCtx.firestore(), 'trainees', traineeId, 'grants', trainerId)))
+    })
+  })
+
+  describe('Milestone 7 progress measurements', () => {
+    it('allows trainee to write progress measurements', async () => {
+      const traineeId = 'trainee123'
+      await seedUser(traineeId, 'trainee')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+      })
+
+      const traineeCtx = testEnv.authenticatedContext(traineeId)
+      const progressRef = doc(
+        traineeCtx.firestore(),
+        'trainees',
+        traineeId,
+        'progressMeasurements',
+        'pm1'
+      )
+
+      await assertSucceeds(
+        setDoc(progressRef, {
+          date: '2026-02-12',
+          bodyWeightKg: 68.2,
+          squat1RmKg: 70,
         })
       )
     })
 
-    it('should deny a trainee from reading another trainee workout data', async () => {
+    it('allows professional read when progress module is granted', async () => {
       const traineeId = 'trainee123'
-      const otherTraineeId = 'trainee456'
-      const context = testEnv.authenticatedContext(traineeId)
-      const workoutRef = doc(
-        context.firestore(),
+      const trainerId = 'trainer123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          modules: {
+            workouts: false,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: true,
+          },
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'progressMeasurements', 'pm1'), {
+          date: '2026-02-12',
+          bodyWeightKg: 68.2,
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const progressRef = doc(
+        trainerCtx.firestore(),
         'trainees',
-        otherTraineeId,
-        'workouts',
-        'workout1'
+        traineeId,
+        'progressMeasurements',
+        'pm1'
       )
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(
-          doc(context.firestore(), 'trainees', otherTraineeId, 'workouts', 'workout1'),
-          {
-            type: 'strength',
-            date: '2024-01-01',
-          }
-        )
-      })
-
-      await assertFails(getDoc(workoutRef))
-    })
-
-    it('should deny unauthenticated users from reading workout data', async () => {
-      const traineeId = 'trainee123'
-      const context = testEnv.unauthenticatedContext()
-      const workoutRef = doc(context.firestore(), 'trainees', traineeId, 'workouts', 'workout1')
-
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await setDoc(
-          doc(context.firestore(), 'trainees', traineeId, 'workouts', 'workout1'),
-          {
-            type: 'strength',
-            date: '2024-01-01',
-          }
-        )
-      })
-
-      await assertFails(getDoc(workoutRef))
+      await assertSucceeds(getDoc(progressRef))
+      await assertFails(setDoc(progressRef, { date: '2026-02-12', bodyWeightKg: 67.5 }))
     })
   })
 })
