@@ -17,6 +17,7 @@
     "@repo/functions": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@sentry/react": "^8.29.0",
     "@tanstack/react-query": "^5.62.0",
     "@trpc/client": "^11.0.0-rc.660",
     "@trpc/react-query": "^11.0.0-rc.660",
