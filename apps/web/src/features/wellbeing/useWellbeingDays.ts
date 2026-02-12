@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   serverTimestamp,
@@ -13,6 +14,8 @@ import {
 import { db } from '../../lib/firebase'
 import type { UpsertWellbeingDayInput, WellbeingDay } from '@repo/shared'
 import { toDayId } from '../checkin/date'
+
+const MAX_WELLBEING_RESULTS = 120
 
 export function useWellbeingDays(traineeId: string, enabled = true) {
   const [entries, setEntries] = useState<WellbeingDay[]>([])
@@ -31,7 +34,11 @@ export function useWellbeingDays(traineeId: string, enabled = true) {
     setError(null)
 
     try {
-      const q = query(collection(db, 'trainees', traineeId, 'wellbeingDays'), orderBy('date', 'desc'))
+      const q = query(
+        collection(db, 'trainees', traineeId, 'wellbeingDays'),
+        orderBy('date', 'desc'),
+        limit(MAX_WELLBEING_RESULTS)
+      )
       const snapshot = await getDocs(q)
       const results: WellbeingDay[] = snapshot.docs.map(snapshotDoc => {
         const data = snapshotDoc.data()

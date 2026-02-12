@@ -7,6 +7,7 @@ describe('UserSchema', () => {
       id: '123',
       email: 'test@example.com',
       name: 'Test User',
+      plan: 'pro',
     })
     expect(result.success).toBe(true)
   })
@@ -34,6 +35,18 @@ describe('UserSchema', () => {
       email: 'test@example.com',
     })
     expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.plan).toBe('free')
+    }
+  })
+
+  it('rejects invalid plan', () => {
+    const result = UserSchema.safeParse({
+      id: '123',
+      email: 'test@example.com',
+      plan: 'enterprise',
+    })
+    expect(result.success).toBe(false)
   })
 })
 
@@ -44,6 +57,9 @@ describe('CreateUserSchema', () => {
       name: 'New User',
     })
     expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.plan).toBe('free')
+    }
   })
 
   it('rejects invalid email on creation', () => {

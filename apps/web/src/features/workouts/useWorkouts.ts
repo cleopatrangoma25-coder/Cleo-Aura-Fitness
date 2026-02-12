@@ -4,12 +4,15 @@ import {
   addDoc,
   query,
   orderBy,
+  limit,
   getDocs,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import type { Workout, CreateWorkoutInput } from '@repo/shared'
+
+const MAX_WORKOUT_RESULTS = 180
 
 export function useWorkouts(traineeId: string, enabled = true) {
   const [workouts, setWorkouts] = useState<Workout[]>([])
@@ -27,7 +30,11 @@ export function useWorkouts(traineeId: string, enabled = true) {
     setLoading(true)
     setError(null)
     try {
-      const q = query(collection(db, 'trainees', traineeId, 'workouts'), orderBy('date', 'desc'))
+      const q = query(
+        collection(db, 'trainees', traineeId, 'workouts'),
+        orderBy('date', 'desc'),
+        limit(MAX_WORKOUT_RESULTS)
+      )
       const snapshot = await getDocs(q)
       const results: Workout[] = snapshot.docs.map(doc => {
         const data = doc.data()

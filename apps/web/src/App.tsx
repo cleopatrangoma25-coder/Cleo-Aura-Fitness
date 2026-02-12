@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db, hasFirebaseConfig } from './lib/firebase'
+import { captureError, initMonitoring, setMonitoringUser } from './lib/monitoring'
 import { TraineeDashboard } from './features/dashboard/TraineeDashboard'
 import { WorkoutForm } from './features/workouts/WorkoutForm'
 import { RecoveryForm } from './features/recovery/RecoveryForm'
@@ -20,15 +21,24 @@ import { InviteAcceptance } from './features/team/InviteAcceptance'
 import { ProfessionalClientView } from './features/team/ProfessionalClientView'
 import { ProgressMeasurementForm } from './features/progress/ProgressMeasurementForm'
 import { ProgressAnalyticsPage } from './features/progress/ProgressAnalyticsPage'
+import { WearableSummaryForm } from './features/wearables/WearableSummaryForm'
+import { ProUpgradePage } from './features/billing/ProUpgradePage'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
+type UserPlan = 'free' | 'pro'
 
 type ProfileRecord = {
   uid: string
   email: string
   displayName: string
   role: UserRole | null
+  plan: UserPlan
 }
+
+const PLAN_OPTIONS: Array<{ value: UserPlan; label: string; description: string }> = [
+  { value: 'free', label: 'Free', description: 'Core logging and history.' },
+  { value: 'pro', label: 'Pro', description: 'Analytics, wearables, and team features.' },
+]
 
 const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
   { value: 'trainee', label: 'Trainee' },
@@ -73,6 +83,7 @@ function AuthScreen() {
             email: credentials.user.email ?? email.trim(),
             displayName: displayName.trim(),
             role: selectedRole,
+            plan: 'free',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           },
@@ -345,6 +356,7 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
   const isTrainee = profile.role === 'trainee'
   const isProfessional =
     profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+  const hasProPlan = profile.plan === 'pro'
 
   if (!profile.role) {
     return <Navigate replace to="/role-select" />
@@ -357,6 +369,7 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           <div>
             <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
             <p className="text-sm text-slate-600">Signed in as {user.email}</p>
+            <p className="text-xs text-slate-500">Plan: {profile.plan.toUpperCase()}</p>
           </div>
           <button className="rounded border px-3 py-2 text-sm" onClick={logout} type="button">
             Logout
@@ -380,12 +393,23 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
               <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/progress/new">
                 Log Progress
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
-                Analytics
-              </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
-                Team
-              </Link>
+              {hasProPlan ? (
+                <>
+                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
+                    Analytics
+                  </Link>
+                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/wearables/new">
+                    Wearables
+                  </Link>
+                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
+                    Team
+                  </Link>
+                </>
+              ) : (
+                <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/upgrade">
+                  Upgrade
+                </Link>
+              )}
             </>
           ) : null}
           {isProfessional ? (
@@ -416,16 +440,16 @@ function SettingsScreen({
 }: {
   user: User
   profile: ProfileRecord
-  onProfileUpdated: (displayName: string) => void
+  onProfileUpdated: (displayName: string, plan?: UserPlan) => void
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName)
   const [isSavingName, setIsSavingName] = useState(false)
+  const [isSavingPlan, setIsSavingPlan] = useState(false)
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null)
 
   useEffect(() => {
     setDisplayName(profile.displayName)
   }, [profile.displayName])
-
   const roleLabel = useMemo(() => {
     const option = ROLE_OPTIONS.find(candidate => candidate.value === profile.role)
     return option?.label ?? 'Unknown'
@@ -458,12 +482,32 @@ function SettingsScreen({
     }
   }
 
+  async function savePlan() {
+    if (profile.plan !== 'pro') return
+    setIsSavingPlan(true)
+    setSettingsMessage(null)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        plan: 'free',
+        updatedAt: serverTimestamp(),
+      })
+      onProfileUpdated(displayName, 'free')
+      setSettingsMessage('Plan downgraded to FREE.')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Unable to update plan.'
+      setSettingsMessage(message)
+    } finally {
+      setIsSavingPlan(false)
+    }
+  }
+
   return (
     <section className="rounded-xl border bg-white p-5 shadow-sm">
       <h2 className="text-xl font-semibold">Account settings</h2>
       <p className="mt-2 text-sm text-slate-600">
         Role: {roleLabel} (immutable after first selection)
       </p>
+      <p className="mt-1 text-sm text-slate-600">Current plan: {profile.plan.toUpperCase()}</p>
 
       <label className="mt-4 grid gap-1 text-sm">
         Display name
@@ -488,6 +532,31 @@ function SettingsScreen({
         </Link>
       </div>
 
+      <div className="mt-5 space-y-2 rounded-lg border bg-slate-50 p-3">
+        <p className="text-sm font-medium">Plan</p>
+        <div className="grid gap-2 text-sm text-slate-600">
+          {PLAN_OPTIONS.map(option => (
+            <p key={option.value}>
+              <span className="font-medium text-slate-900">{option.label}</span>: {option.description}
+            </p>
+          ))}
+        </div>
+        {profile.plan === 'free' ? (
+          <Link className="inline-block rounded border px-3 py-2 text-sm hover:bg-white" to="/app/upgrade">
+            Open Pro Payment Page
+          </Link>
+        ) : (
+          <button
+            className="rounded border px-3 py-2 text-sm"
+            disabled={isSavingPlan}
+            onClick={savePlan}
+            type="button"
+          >
+            {isSavingPlan ? 'Saving plan...' : 'Downgrade to Free'}
+          </button>
+        )}
+      </div>
+
       {settingsMessage ? <p className="mt-2 text-sm text-slate-600">{settingsMessage}</p> : null}
     </section>
   )
@@ -501,8 +570,10 @@ function MilestoneOneApp() {
   const [appError, setAppError] = useState<string | null>(null)
 
   useEffect(() => {
+    initMonitoring()
     const unsubscribe = onAuthStateChanged(auth, user => {
       setAuthUser(user)
+      setMonitoringUser(user ? { uid: user.uid, email: user.email } : null)
       setAuthLoading(false)
     })
 
@@ -520,6 +591,7 @@ function MilestoneOneApp() {
 
         if (snapshot.exists()) {
           const data = snapshot.data() as Partial<ProfileRecord>
+          const resolvedPlan: UserPlan = data.plan === 'pro' ? 'pro' : 'free'
           setProfile({
             uid: currentUser.uid,
             email: currentUser.email ?? '',
@@ -528,13 +600,21 @@ function MilestoneOneApp() {
                 ? data.displayName
                 : currentUser.displayName ?? '',
             role: (data.role as UserRole | null) ?? null,
+            plan: resolvedPlan,
           })
+          if (data.plan !== 'free' && data.plan !== 'pro') {
+            await updateDoc(userRef, {
+              plan: 'free',
+              updatedAt: serverTimestamp(),
+            })
+          }
         } else {
           const createdProfile: ProfileRecord = {
             uid: currentUser.uid,
             email: currentUser.email ?? '',
             displayName: currentUser.displayName ?? '',
             role: null,
+            plan: 'free',
           }
 
           await setDoc(userRef, {
@@ -548,6 +628,12 @@ function MilestoneOneApp() {
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : 'Failed to load user profile.'
         setAppError(message)
+        void captureError({
+          source: 'manual',
+          message,
+          stack: caught instanceof Error ? caught.stack : undefined,
+          extra: 'profile-bootstrap',
+        })
       } finally {
         setProfileLoading(false)
       }
@@ -635,12 +721,50 @@ function MilestoneOneApp() {
               path="progress/new"
             />
             <Route
-              element={profile?.role === 'trainee' ? <ProgressAnalyticsPage /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                  <ProgressAnalyticsPage />
+                ) : (
+                  <Navigate replace to="/app/settings" />
+                )
+              }
               path="analytics"
             />
             <Route
-              element={profile?.role === 'trainee' ? <TeamAccessManager /> : <Navigate replace to="/app" />}
+              element={
+                profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                  <WearableSummaryForm />
+                ) : (
+                  <Navigate replace to="/app/settings" />
+                )
+              }
+              path="wearables/new"
+            />
+            <Route
+              element={
+                profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                  <TeamAccessManager />
+                ) : (
+                  <Navigate replace to="/app/settings" />
+                )
+              }
               path="team"
+            />
+            <Route
+              element={
+                profile?.role === 'trainee' ? (
+                  <ProUpgradePage
+                    onPlanUpdated={plan =>
+                      setProfile(current => (current ? { ...current, plan } : current))
+                    }
+                    profile={profile}
+                    user={authUser!}
+                  />
+                ) : (
+                  <Navigate replace to="/app" />
+                )
+              }
+              path="upgrade"
             />
             <Route
               element={
@@ -669,8 +793,12 @@ function MilestoneOneApp() {
             <Route
               element={
                 <SettingsScreen
-                  onProfileUpdated={displayName =>
-                    setProfile(current => (current ? { ...current, displayName } : current))
+                  onProfileUpdated={(displayName, plan) =>
+                    setProfile(current =>
+                      current
+                        ? { ...current, displayName, plan: plan ?? current.plan }
+                        : current
+                    )
                   }
                   profile={profile!}
                   user={authUser!}

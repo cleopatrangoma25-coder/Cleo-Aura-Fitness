@@ -7,12 +7,13 @@ import { useTimeline } from '../timeline/useTimeline'
 import { TimelineEntry } from '../timeline/TimelineEntry'
 import { useProfessionalClients } from '../team/useProfessionalClients'
 import { useProgressMeasurements } from '../progress/useProgressMeasurements'
+import { useWearablesSummary } from '../wearables/useWearablesSummary'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
 type AppContext = {
   user: User
-  profile: { uid: string; displayName: string; role: UserRole | null }
+  profile: { uid: string; displayName: string; role: UserRole | null; plan: 'free' | 'pro' }
 }
 
 const ROLE_COPY: Record<UserRole, string> = {
@@ -84,6 +85,7 @@ const PROFESSIONAL_ROLE_THEME: Record<
 export function TraineeDashboard() {
   const { user, profile } = useOutletContext<AppContext>()
   const isTrainee = profile.role === 'trainee'
+  const hasProPlan = profile.plan === 'pro'
   const isProfessional = profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
   const professionalTheme =
     profile.role && profile.role !== 'trainee' ? PROFESSIONAL_ROLE_THEME[profile.role] : null
@@ -91,6 +93,7 @@ export function TraineeDashboard() {
   const { workouts, loading: workoutsLoading } = useWorkouts(user.uid, isTrainee)
   const { entries: recovery, loading: recoveryLoading } = useRecovery(user.uid, isTrainee)
   const { entries: progressEntries, loading: progressLoading } = useProgressMeasurements(user.uid, isTrainee)
+  const { entries: wearableEntries, loading: wearablesLoading } = useWearablesSummary(user.uid, isTrainee)
   const timeline = useTimeline(workouts, recovery)
 
   const {
@@ -102,13 +105,13 @@ export function TraineeDashboard() {
   const activeClients = clients.filter(client => client.active)
   const roleFocusedClientsList = activeClients.filter(client => {
     if (profile.role === 'trainer') {
-      return client.modules.workouts || client.modules.recovery
+      return client.modules.workouts || client.modules.recovery || client.modules.wearables
     }
     if (profile.role === 'nutritionist') {
       return client.modules.nutrition
     }
     if (profile.role === 'counsellor') {
-      return client.modules.wellbeing
+      return client.modules.wellbeing || client.modules.wearables
     }
     return false
   })
@@ -117,6 +120,7 @@ export function TraineeDashboard() {
 
   const recentEntries = timeline.slice(0, 5)
   const loading = workoutsLoading || recoveryLoading
+  const latestWearable = wearableEntries[0] ?? null
 
   const traineeInsights = (() => {
     const last28Cutoff = new Date()
@@ -280,6 +284,53 @@ export function TraineeDashboard() {
             </div>
           </section>
 
+          {hasProPlan ? (
+            <section className="rounded-xl border bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-lg font-semibold">Wearable Summary</h3>
+                <Link className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50" to="/app/wearables/new">
+                  Log Wearable Day
+                </Link>
+              </div>
+              {wearablesLoading ? (
+                <p className="mt-2 text-sm text-slate-500">Loading wearable summary...</p>
+              ) : latestWearable ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                  <article className="rounded border bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Date</p>
+                    <p className="font-semibold">{latestWearable.date}</p>
+                  </article>
+                  <article className="rounded border bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Steps</p>
+                    <p className="font-semibold">{latestWearable.steps ?? '-'}</p>
+                  </article>
+                  <article className="rounded border bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Workout Minutes</p>
+                    <p className="font-semibold">{latestWearable.workoutMinutes ?? '-'}</p>
+                  </article>
+                  <article className="rounded border bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Sleep Hours</p>
+                    <p className="font-semibold">{latestWearable.sleepHours ?? '-'}</p>
+                  </article>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-slate-500">
+                  No wearable summaries yet. Add your first daily summary.
+                </p>
+              )}
+            </section>
+          ) : (
+            <section className="rounded-xl border bg-amber-50 p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-amber-900">Pro features available</h3>
+              <p className="mt-1 text-sm text-amber-800">
+                Upgrade to Pro to unlock wearable summaries, advanced analytics, and team access controls.
+              </p>
+              <Link className="mt-3 inline-block rounded border border-amber-300 px-3 py-1.5 text-sm text-amber-900 hover:bg-amber-100" to="/app/settings">
+                Manage plan
+              </Link>
+            </section>
+          )}
+
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Recent Activity</h2>
@@ -399,9 +450,9 @@ export function TraineeDashboard() {
                       }`}
                     >
                       <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
-                        {activeClients.filter(client => client.modules.workouts && client.modules.recovery).length}
+                        {summary.wearablesClients}
                       </p>
-                      <p className="text-xs text-slate-600">Clients sharing both modules</p>
+                      <p className="text-xs text-slate-600">Clients sharing wearables</p>
                     </article>
                   </>
                 ) : null}
@@ -467,9 +518,9 @@ export function TraineeDashboard() {
                       }`}
                     >
                       <p className={`text-2xl font-semibold ${professionalTheme?.accentStrong ?? ''}`}>
-                        {roleMissingAccess}
+                        {summary.wearablesClients}
                       </p>
-                      <p className="text-xs text-slate-600">Need wellbeing permission</p>
+                      <p className="text-xs text-slate-600">Clients sharing wearables</p>
                     </article>
                   </>
                 ) : null}
@@ -545,17 +596,20 @@ export function TraineeDashboard() {
                         {profile.role === 'trainer' ? (
                           <p className="mt-1 text-xs text-slate-600">
                             Workouts: {client.modules.workouts ? 'On' : 'Off'} | Recovery:{' '}
-                            {client.modules.recovery ? 'On' : 'Off'}
+                            {client.modules.recovery ? 'On' : 'Off'} | Wearables:{' '}
+                            {client.modules.wearables ? 'On' : 'Off'}
                           </p>
                         ) : null}
                         {profile.role === 'nutritionist' ? (
                           <p className="mt-1 text-xs text-slate-600">
-                            Nutrition: {client.modules.nutrition ? 'On' : 'Off'}
+                            Nutrition: {client.modules.nutrition ? 'On' : 'Off'} | Wearables:{' '}
+                            {client.modules.wearables ? 'On' : 'Off'}
                           </p>
                         ) : null}
                         {profile.role === 'counsellor' ? (
                           <p className="mt-1 text-xs text-slate-600">
-                            Wellbeing: {client.modules.wellbeing ? 'On' : 'Off'}
+                            Wellbeing: {client.modules.wellbeing ? 'On' : 'Off'} | Wearables:{' '}
+                            {client.modules.wearables ? 'On' : 'Off'}
                           </p>
                         ) : null}
                       </div>

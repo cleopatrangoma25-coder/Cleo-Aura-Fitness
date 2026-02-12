@@ -8,6 +8,7 @@ import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
 import { useNutritionDays } from '../nutrition/useNutritionDays'
 import { useWellbeingDays } from '../wellbeing/useWellbeingDays'
+import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { WorkoutCard } from '../workouts/WorkoutCard'
 import { RecoveryCard } from '../recovery/RecoveryCard'
 import { buildTrainerMuscleInsights, countDigestionNotes, isWithinLastDays } from './insightsUtils'
@@ -23,6 +24,7 @@ const EMPTY_PERMISSIONS: ModulePermissions = {
   nutrition: false,
   wellbeing: false,
   progress: false,
+  wearables: false,
 }
 
 function average(values: number[]): number {
@@ -42,11 +44,13 @@ export function ProfessionalClientView() {
   const recoveryAllowed = grantActive && permissions.recovery
   const nutritionAllowed = grantActive && permissions.nutrition
   const wellbeingAllowed = grantActive && permissions.wellbeing
+  const wearablesAllowed = grantActive && permissions.wearables
 
   const workoutsState = useWorkouts(traineeId, workoutsAllowed)
   const recoveryState = useRecovery(traineeId, recoveryAllowed)
   const nutritionState = useNutritionDays(traineeId, nutritionAllowed)
   const wellbeingState = useWellbeingDays(traineeId, wellbeingAllowed)
+  const wearablesState = useWearablesSummary(traineeId, wearablesAllowed)
 
   useEffect(() => {
     async function bootstrapGrant() {
@@ -74,6 +78,7 @@ export function ProfessionalClientView() {
           nutrition: Boolean(data.modules?.nutrition),
           wellbeing: Boolean(data.modules?.wellbeing),
           progress: Boolean(data.modules?.progress),
+          wearables: Boolean(data.modules?.wearables),
         })
       } catch (caught) {
         setGrantError(caught instanceof Error ? caught.message : 'Failed to load grant.')
@@ -162,6 +167,28 @@ export function ProfessionalClientView() {
       moodSeries,
     }
   }, [wellbeingState.entries])
+
+  const wearablesInsights = useMemo(() => {
+    const recent = wearablesState.entries.filter(entry => isWithinLastDays(entry.date, 14))
+    const avgSteps = average(recent.map(entry => entry.steps).filter((value): value is number => value !== null))
+    const avgSleep = average(
+      recent.map(entry => entry.sleepHours).filter((value): value is number => value !== null)
+    )
+    const avgRestingHr = average(
+      recent.map(entry => entry.restingHeartRateBpm).filter((value): value is number => value !== null)
+    )
+    const avgReadiness = average(
+      recent.map(entry => entry.readinessScore).filter((value): value is number => value !== null)
+    )
+
+    return {
+      recentCount: recent.length,
+      avgSteps,
+      avgSleep,
+      avgRestingHr,
+      avgReadiness,
+    }
+  }, [wearablesState.entries])
 
   if (!isProfessional) {
     return (
@@ -341,6 +368,34 @@ export function ProfessionalClientView() {
         </section>
       ) : null}
 
+      {wearablesAllowed ? (
+        <section className="rounded-xl border bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-semibold">Wearable insights (last 14 days)</h3>
+          {wearablesState.error ? <p className="mt-2 text-sm text-red-600">{wearablesState.error}</p> : null}
+          <div className="mt-3 grid gap-3 sm:grid-cols-4">
+            <article className="rounded border p-3">
+              <p className="text-2xl font-semibold">{wearablesInsights.recentCount}</p>
+              <p className="text-xs text-slate-600">Wearable days logged</p>
+            </article>
+            <article className="rounded border p-3">
+              <p className="text-2xl font-semibold">{wearablesInsights.avgSteps}</p>
+              <p className="text-xs text-slate-600">Average daily steps</p>
+            </article>
+            <article className="rounded border p-3">
+              <p className="text-2xl font-semibold">{wearablesInsights.avgSleep}</p>
+              <p className="text-xs text-slate-600">Average sleep hours</p>
+            </article>
+            <article className="rounded border p-3">
+              <p className="text-2xl font-semibold">{wearablesInsights.avgRestingHr}</p>
+              <p className="text-xs text-slate-600">Average resting HR</p>
+            </article>
+          </div>
+          <p className="mt-3 text-sm text-slate-600">
+            Average readiness score: {wearablesInsights.avgReadiness}
+          </p>
+        </section>
+      ) : null}
+
       {workoutsAllowed ? (
         <section className="space-y-2">
           <h3 className="text-lg font-semibold">Workouts</h3>
@@ -411,7 +466,7 @@ export function ProfessionalClientView() {
         </section>
       ) : null}
 
-      {!workoutsAllowed && !recoveryAllowed && !nutritionAllowed && !wellbeingAllowed ? (
+      {!workoutsAllowed && !recoveryAllowed && !nutritionAllowed && !wellbeingAllowed && !wearablesAllowed ? (
         <section className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-600">
             No modules are enabled yet. Ask the trainee to enable permissions in Team settings.

@@ -27,6 +27,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   nutrition: 'Nutrition',
   wellbeing: 'Wellbeing',
   progress: 'Progress',
+  wearables: 'Wearable Summary',
 }
 
 type TeamView = TeamMember & { grant: Grant | null }
@@ -78,6 +79,7 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
             nutrition: Boolean(data.modules?.nutrition),
             wellbeing: Boolean(data.modules?.wellbeing),
             progress: Boolean(data.modules?.progress),
+            wearables: Boolean(data.modules?.wearables),
           },
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
@@ -213,6 +215,7 @@ export async function acceptInvite(params: {
     nutrition: false,
     wellbeing: false,
     progress: false,
+    wearables: false,
   }
 
   await updateDoc(inviteRef, {

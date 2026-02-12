@@ -11,14 +11,14 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore'
+import type { UpsertWearableSummaryInput, WearableSummary } from '@repo/shared'
 import { db } from '../../lib/firebase'
-import type { NutritionDay, UpsertNutritionDayInput } from '@repo/shared'
 import { toDayId } from '../checkin/date'
 
-const MAX_NUTRITION_RESULTS = 120
+const MAX_WEARABLE_RESULTS = 120
 
-export function useNutritionDays(traineeId: string, enabled = true) {
-  const [entries, setEntries] = useState<NutritionDay[]>([])
+export function useWearablesSummary(traineeId: string, enabled = true) {
+  const [entries, setEntries] = useState<WearableSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,12 +35,12 @@ export function useNutritionDays(traineeId: string, enabled = true) {
 
     try {
       const q = query(
-        collection(db, 'trainees', traineeId, 'nutritionDays'),
+        collection(db, 'trainees', traineeId, 'wearablesSummary'),
         orderBy('date', 'desc'),
-        limit(MAX_NUTRITION_RESULTS)
+        limit(MAX_WEARABLE_RESULTS)
       )
       const snapshot = await getDocs(q)
-      const results: NutritionDay[] = snapshot.docs.map(snapshotDoc => {
+      const results: WearableSummary[] = snapshot.docs.map(snapshotDoc => {
         const data = snapshotDoc.data()
         return {
           id: snapshotDoc.id,
@@ -48,9 +48,14 @@ export function useNutritionDays(traineeId: string, enabled = true) {
             data.date instanceof Timestamp
               ? data.date.toDate().toISOString().split('T')[0]!
               : String(data.date),
-          mealsOnTrack: Boolean(data.mealsOnTrack),
-          mealQuality: data.mealQuality,
-          hydration: data.hydration,
+          source: data.source,
+          steps: data.steps ?? null,
+          activeCaloriesKcal: data.activeCaloriesKcal ?? null,
+          workoutMinutes: data.workoutMinutes ?? null,
+          avgHeartRateBpm: data.avgHeartRateBpm ?? null,
+          restingHeartRateBpm: data.restingHeartRateBpm ?? null,
+          sleepHours: data.sleepHours ?? null,
+          readinessScore: data.readinessScore ?? null,
           notes: data.notes ?? '',
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
@@ -58,7 +63,7 @@ export function useNutritionDays(traineeId: string, enabled = true) {
       })
       setEntries(results)
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Failed to load nutrition days.')
+      setError(caught instanceof Error ? caught.message : 'Failed to load wearable summaries.')
     } finally {
       setLoading(false)
     }
@@ -68,9 +73,9 @@ export function useNutritionDays(traineeId: string, enabled = true) {
     void fetchEntries()
   }, [fetchEntries])
 
-  async function upsertNutritionDay(input: UpsertNutritionDayInput): Promise<void> {
+  async function upsertSummary(input: UpsertWearableSummaryInput): Promise<void> {
     const dayId = toDayId(input.date)
-    const dayRef = doc(db, 'trainees', traineeId, 'nutritionDays', dayId)
+    const dayRef = doc(db, 'trainees', traineeId, 'wearablesSummary', dayId)
     const existing = await getDoc(dayRef)
 
     await setDoc(
@@ -87,5 +92,5 @@ export function useNutritionDays(traineeId: string, enabled = true) {
     await fetchEntries()
   }
 
-  return { entries, loading, error, upsertNutritionDay, refetch: fetchEntries }
+  return { entries, loading, error, upsertSummary, refetch: fetchEntries }
 }

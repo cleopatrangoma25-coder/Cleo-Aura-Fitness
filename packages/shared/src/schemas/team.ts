@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const ProfessionalRoleEnum = z.enum(['trainer', 'nutritionist', 'counsellor'])
 export type ProfessionalRole = z.infer<typeof ProfessionalRoleEnum>
 
-export const MODULE_KEYS = ['workouts', 'recovery', 'nutrition', 'wellbeing', 'progress'] as const
+export const MODULE_KEYS = ['workouts', 'recovery', 'nutrition', 'wellbeing', 'progress', 'wearables'] as const
 export type ModuleKey = (typeof MODULE_KEYS)[number]
 
 export const ModulePermissionsSchema = z.object({
@@ -12,6 +12,7 @@ export const ModulePermissionsSchema = z.object({
   nutrition: z.boolean(),
   wellbeing: z.boolean(),
   progress: z.boolean(),
+  wearables: z.boolean(),
 })
 export type ModulePermissions = z.infer<typeof ModulePermissionsSchema>
 
@@ -61,6 +62,7 @@ export function defaultModulesForRole(role: ProfessionalRole): ModulePermissions
       nutrition: false,
       wellbeing: false,
       progress: true,
+      wearables: true,
     }
   }
 
@@ -71,6 +73,7 @@ export function defaultModulesForRole(role: ProfessionalRole): ModulePermissions
       nutrition: true,
       wellbeing: false,
       progress: false,
+      wearables: false,
     }
   }
 
@@ -80,5 +83,6 @@ export function defaultModulesForRole(role: ProfessionalRole): ModulePermissions
     nutrition: false,
     wellbeing: true,
     progress: false,
+    wearables: true,
   }
 }

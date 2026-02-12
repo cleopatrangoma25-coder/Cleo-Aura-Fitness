@@ -57,7 +57,8 @@ service cloud.firestore {
         && modules.recovery == false
         && modules.nutrition == false
         && modules.wellbeing == false
-        && modules.progress == false;
+        && modules.progress == false
+        && modules.wearables == false;
     }
 
     match /users/{userId} {
@@ -134,6 +135,11 @@ service cloud.firestore {
 
       match /progressMeasurements/{measurementId} {
         allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'progress');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /wearablesSummary/{dayId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'wearables');
         allow write: if isTraineeOwner(traineeId) && isTraineeUser();
       }
 

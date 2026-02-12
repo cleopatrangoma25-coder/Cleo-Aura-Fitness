@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   getDocs,
+  limit,
   orderBy,
   query,
   serverTimestamp,
@@ -10,6 +11,8 @@ import {
 } from 'firebase/firestore'
 import type { CreateProgressMeasurementInput, ProgressMeasurement } from '@repo/shared'
 import { db } from '../../lib/firebase'
+
+const MAX_PROGRESS_RESULTS = 120
 
 export function useProgressMeasurements(traineeId: string, enabled = true) {
   const [entries, setEntries] = useState<ProgressMeasurement[]>([])
@@ -29,7 +32,8 @@ export function useProgressMeasurements(traineeId: string, enabled = true) {
     try {
       const q = query(
         collection(db, 'trainees', traineeId, 'progressMeasurements'),
-        orderBy('date', 'desc')
+        orderBy('date', 'desc'),
+        limit(MAX_PROGRESS_RESULTS)
       )
       const snapshot = await getDocs(q)
       const results: ProgressMeasurement[] = snapshot.docs.map(snapshotDoc => {

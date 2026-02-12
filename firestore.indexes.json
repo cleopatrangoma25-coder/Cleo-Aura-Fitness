@@ -1,0 +1,35 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "workouts",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "recovery",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "nutritionDays",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "wellbeingDays",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "progressMeasurements",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "wearablesSummary",
+      "fieldPath": "notes",
+      "indexes": []
+    }
+  ]
+}

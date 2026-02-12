@@ -38,6 +38,14 @@ export { ProgressMeasurementSchema, CreateProgressMeasurementSchema } from './pr
 export type { ProgressMeasurement, CreateProgressMeasurementInput } from './progress'
 
 export {
+  WearableSourceEnum,
+  WEARABLE_SOURCE_LABELS,
+  WearableSummarySchema,
+  UpsertWearableSummarySchema,
+} from './wearable'
+export type { WearableSource, WearableSummary, UpsertWearableSummaryInput } from './wearable'
+
+export {
   ProfessionalRoleEnum,
   MODULE_KEYS,
   ModulePermissionsSchema,

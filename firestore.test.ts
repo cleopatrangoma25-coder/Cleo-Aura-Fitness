@@ -176,6 +176,7 @@ describe('Firestore Security Rules', () => {
             nutrition: false,
             wellbeing: false,
             progress: false,
+            wearables: false,
           },
         })
       )
@@ -207,6 +208,7 @@ describe('Firestore Security Rules', () => {
             nutrition: false,
             wellbeing: false,
             progress: false,
+            wearables: false,
           },
         })
         await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'workouts', 'w1'), {
@@ -247,6 +249,7 @@ describe('Firestore Security Rules', () => {
             nutrition: true,
             wellbeing: false,
             progress: false,
+            wearables: false,
           },
         })
         await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'wellbeingDays', '20260211'), {
@@ -292,6 +295,7 @@ describe('Firestore Security Rules', () => {
             nutrition: false,
             wellbeing: false,
             progress: false,
+            wearables: false,
           },
         })
       })
@@ -360,6 +364,7 @@ describe('Firestore Security Rules', () => {
             nutrition: false,
             wellbeing: false,
             progress: true,
+            wearables: false,
           },
         })
         await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'progressMeasurements', 'pm1'), {
@@ -378,6 +383,113 @@ describe('Firestore Security Rules', () => {
       )
       await assertSucceeds(getDoc(progressRef))
       await assertFails(setDoc(progressRef, { date: '2026-02-12', bodyWeightKg: 67.5 }))
+    })
+  })
+
+  describe('Milestone 8 wearable summaries', () => {
+    it('allows trainee to write wearable summary', async () => {
+      const traineeId = 'trainee123'
+      await seedUser(traineeId, 'trainee')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+      })
+
+      const traineeCtx = testEnv.authenticatedContext(traineeId)
+      const wearableRef = doc(traineeCtx.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212')
+      await assertSucceeds(
+        setDoc(wearableRef, {
+          date: '2026-02-12',
+          source: 'manual',
+          steps: 8234,
+        })
+      )
+    })
+
+    it('allows professional read when wearables module is granted', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          modules: {
+            workouts: false,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: false,
+            wearables: true,
+          },
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212'), {
+          date: '2026-02-12',
+          source: 'manual',
+          steps: 8234,
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const wearableRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212')
+      await assertSucceeds(getDoc(wearableRef))
+      await assertFails(setDoc(wearableRef, { date: '2026-02-12', source: 'manual', steps: 9000 }))
+    })
+
+    it('denies professional read when wearables module is off', async () => {
+      const traineeId = 'trainee123'
+      const trainerId = 'trainer123'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'teamMembers', trainerId), {
+          uid: trainerId,
+          role: 'trainer',
+          status: 'active',
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'grants', trainerId), {
+          memberUid: trainerId,
+          role: 'trainer',
+          active: true,
+          modules: {
+            workouts: false,
+            recovery: false,
+            nutrition: false,
+            wellbeing: false,
+            progress: false,
+            wearables: false,
+          },
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212'), {
+          date: '2026-02-12',
+          source: 'manual',
+          steps: 8234,
+        })
+      })
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const wearableRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212')
+      await assertFails(getDoc(wearableRef))
     })
   })
 })

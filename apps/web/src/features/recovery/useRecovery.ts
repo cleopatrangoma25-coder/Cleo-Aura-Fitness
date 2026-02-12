@@ -4,12 +4,15 @@ import {
   addDoc,
   query,
   orderBy,
+  limit,
   getDocs,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import type { Recovery, CreateRecoveryInput } from '@repo/shared'
+
+const MAX_RECOVERY_RESULTS = 180
 
 export function useRecovery(traineeId: string, enabled = true) {
   const [entries, setEntries] = useState<Recovery[]>([])
@@ -27,7 +30,11 @@ export function useRecovery(traineeId: string, enabled = true) {
     setLoading(true)
     setError(null)
     try {
-      const q = query(collection(db, 'trainees', traineeId, 'recovery'), orderBy('date', 'desc'))
+      const q = query(
+        collection(db, 'trainees', traineeId, 'recovery'),
+        orderBy('date', 'desc'),
+        limit(MAX_RECOVERY_RESULTS)
+      )
       const snapshot = await getDocs(q)
       const results: Recovery[] = snapshot.docs.map(doc => {
         const data = doc.data()

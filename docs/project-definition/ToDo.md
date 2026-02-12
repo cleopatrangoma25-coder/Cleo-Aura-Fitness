@@ -201,6 +201,12 @@ Overlay wearable data in dashboards
 Exit criteria:
 Wearable data appears in summaries without overwhelming UI.
 
+Status update (2026-02-12):
+- Completed: wearable summary schema + validation, trainee wearable logging flow, trainee dashboard overlay.
+- Completed: team permission module for wearable summaries and Firestore rule enforcement.
+- Completed: professional client wearable insights view (read-only, permission-gated).
+- Pending in later phase: direct HealthKit sync implementation (Apple Watch -> Firestore automation).
+
 Milestone 9 — Freemium, Hardening & Launch
 
 Goal: Production-ready release.
@@ -219,3 +225,11 @@ Beta feedback & iteration
 
 Exit criteria:
 App is stable, secure, and ready for real users
+
+Status update (2026-02-12):
+- In progress: introduced `plan` model (`free` / `pro`) on user profile.
+- In progress: implemented initial feature gating in UI/routes (analytics, wearables, team as Pro-gated for trainees).
+- Completed: reduced high-volume dashboard queries with bounded result limits and removed N+1 client grant fetches.
+- Completed: added Firestore index config (`firestore.indexes.json`) with disabled indexes on non-query `notes` fields to reduce write/index cost.
+- Completed: added global frontend error monitoring hooks (error boundary + `window`/promise capture) with optional endpoint forwarding.
+- Pending next: release checklist and beta feedback iteration.

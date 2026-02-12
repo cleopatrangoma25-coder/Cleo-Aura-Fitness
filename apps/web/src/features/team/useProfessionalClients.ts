@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { collectionGroup, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
+import { collectionGroup, getDocs, limit, query, where } from 'firebase/firestore'
 import type { ModulePermissions, ProfessionalRole } from '@repo/shared'
 import { db } from '../../lib/firebase'
 
@@ -16,6 +16,7 @@ const EMPTY_MODULES: ModulePermissions = {
   nutrition: false,
   wellbeing: false,
   progress: false,
+  wearables: false,
 }
 
 export function useProfessionalClients(professionalUid: string, enabled = true) {
@@ -35,37 +36,35 @@ export function useProfessionalClients(professionalUid: string, enabled = true) 
     setError(null)
 
     try {
-      const q = query(collectionGroup(db, 'teamMembers'), where('uid', '==', professionalUid))
+      const q = query(
+        collectionGroup(db, 'grants'),
+        where('memberUid', '==', professionalUid),
+        limit(200)
+      )
       const snapshot = await getDocs(q)
 
-      const clientsWithGrants = await Promise.all(
-        snapshot.docs.map(async teamMemberDoc => {
-          const traineeId = teamMemberDoc.ref.parent.parent?.id
-          if (!traineeId) return null
-
-          const grantSnapshot = await getDoc(doc(db, 'trainees', traineeId, 'grants', professionalUid))
-          if (!grantSnapshot.exists()) return null
-
-          const grantData = grantSnapshot.data() as {
-            active?: boolean
-            role?: ProfessionalRole
-            modules?: Partial<ModulePermissions>
-          }
-
-          return {
-            traineeId,
-            active: Boolean(grantData.active),
-            role: grantData.role ?? 'trainer',
-            modules: {
-              workouts: Boolean(grantData.modules?.workouts),
-              recovery: Boolean(grantData.modules?.recovery),
-              nutrition: Boolean(grantData.modules?.nutrition),
-              wellbeing: Boolean(grantData.modules?.wellbeing),
-              progress: Boolean(grantData.modules?.progress),
-            },
-          } as ClientGrant
-        })
-      )
+      const clientsWithGrants = snapshot.docs.map(grantDoc => {
+        const traineeId = grantDoc.ref.parent.parent?.id
+        if (!traineeId) return null
+        const grantData = grantDoc.data() as {
+          active?: boolean
+          role?: ProfessionalRole
+          modules?: Partial<ModulePermissions>
+        }
+        return {
+          traineeId,
+          active: Boolean(grantData.active),
+          role: grantData.role ?? 'trainer',
+          modules: {
+            workouts: Boolean(grantData.modules?.workouts),
+            recovery: Boolean(grantData.modules?.recovery),
+            nutrition: Boolean(grantData.modules?.nutrition),
+            wellbeing: Boolean(grantData.modules?.wellbeing),
+            progress: Boolean(grantData.modules?.progress),
+            wearables: Boolean(grantData.modules?.wearables),
+          },
+        } as ClientGrant
+      })
 
       setClients(clientsWithGrants.filter(Boolean) as ClientGrant[])
     } catch (caught) {
@@ -88,6 +87,7 @@ export function useProfessionalClients(professionalUid: string, enabled = true) 
       nutritionClients: active.filter(client => client.modules.nutrition).length,
       wellbeingClients: active.filter(client => client.modules.wellbeing).length,
       progressClients: active.filter(client => client.modules.progress).length,
+      wearablesClients: active.filter(client => client.modules.wearables).length,
     }
   }, [clients])
 
