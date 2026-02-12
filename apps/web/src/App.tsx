@@ -15,19 +15,53 @@ import { Button } from '@repo/ui/Button'
 import { Card } from '@repo/ui/Card'
 import { LoadingCard } from './components/LoadingCard'
 
-const TraineeDashboard = lazy(() => import('./features/dashboard/TraineeDashboard').then(m => ({ default: m.TraineeDashboard })))
-const WorkoutForm = lazy(() => import('./features/workouts/WorkoutForm').then(m => ({ default: m.WorkoutForm })))
-const RecoveryForm = lazy(() => import('./features/recovery/RecoveryForm').then(m => ({ default: m.RecoveryForm })))
-const HistoryTimeline = lazy(() => import('./features/timeline/HistoryTimeline').then(m => ({ default: m.HistoryTimeline })))
-const DailyCheckIn = lazy(() => import('./features/checkin/DailyCheckIn').then(m => ({ default: m.DailyCheckIn })))
-const TeamAccessManager = lazy(() => import('./features/team/TeamAccessManager').then(m => ({ default: m.TeamAccessManager })))
-const InviteAcceptance = lazy(() => import('./features/team/InviteAcceptance').then(m => ({ default: m.InviteAcceptance })))
-const ProfessionalClientView = lazy(() => import('./features/team/ProfessionalClientView').then(m => ({ default: m.ProfessionalClientView })))
-const ProgressMeasurementForm = lazy(() => import('./features/progress/ProgressMeasurementForm').then(m => ({ default: m.ProgressMeasurementForm })))
-const ProgressAnalyticsPage = lazy(() => import('./features/progress/ProgressAnalyticsPage').then(m => ({ default: m.ProgressAnalyticsPage })))
-const WearableSummaryForm = lazy(() => import('./features/wearables/WearableSummaryForm').then(m => ({ default: m.WearableSummaryForm })))
-const WearableSyncImportPage = lazy(() => import('./features/wearables/WearableSyncImportPage').then(m => ({ default: m.WearableSyncImportPage })))
-const ProUpgradePage = lazy(() => import('./features/billing/ProUpgradePage').then(m => ({ default: m.ProUpgradePage })))
+const TraineeDashboard = lazy(() =>
+  import('./features/dashboard/TraineeDashboard').then(m => ({ default: m.TraineeDashboard }))
+)
+const WorkoutForm = lazy(() =>
+  import('./features/workouts/WorkoutForm').then(m => ({ default: m.WorkoutForm }))
+)
+const RecoveryForm = lazy(() =>
+  import('./features/recovery/RecoveryForm').then(m => ({ default: m.RecoveryForm }))
+)
+const HistoryTimeline = lazy(() =>
+  import('./features/timeline/HistoryTimeline').then(m => ({ default: m.HistoryTimeline }))
+)
+const DailyCheckIn = lazy(() =>
+  import('./features/checkin/DailyCheckIn').then(m => ({ default: m.DailyCheckIn }))
+)
+const TeamAccessManager = lazy(() =>
+  import('./features/team/TeamAccessManager').then(m => ({ default: m.TeamAccessManager }))
+)
+const InviteAcceptance = lazy(() =>
+  import('./features/team/InviteAcceptance').then(m => ({ default: m.InviteAcceptance }))
+)
+const ProfessionalClientView = lazy(() =>
+  import('./features/team/ProfessionalClientView').then(m => ({
+    default: m.ProfessionalClientView,
+  }))
+)
+const ProgressMeasurementForm = lazy(() =>
+  import('./features/progress/ProgressMeasurementForm').then(m => ({
+    default: m.ProgressMeasurementForm,
+  }))
+)
+const ProgressAnalyticsPage = lazy(() =>
+  import('./features/progress/ProgressAnalyticsPage').then(m => ({
+    default: m.ProgressAnalyticsPage,
+  }))
+)
+const WearableSummaryForm = lazy(() =>
+  import('./features/wearables/WearableSummaryForm').then(m => ({ default: m.WearableSummaryForm }))
+)
+const WearableSyncImportPage = lazy(() =>
+  import('./features/wearables/WearableSyncImportPage').then(m => ({
+    default: m.WearableSyncImportPage,
+  }))
+)
+const ProUpgradePage = lazy(() =>
+  import('./features/billing/ProUpgradePage').then(m => ({ default: m.ProUpgradePage }))
+)
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 type UserPlan = 'free' | 'pro'
@@ -410,35 +444,29 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
               >
                 Log Progress
               </Link>
-              {hasProPlan ? (
-                <>
-                  <Link
-                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                    to="/app/analytics"
-                  >
-                    Analytics
-                  </Link>
-                  <Link
-                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                    to="/app/wearables/new"
-                  >
-                    Wearables
-                  </Link>
-                  <Link
-                    className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                    to="/app/wearables/import"
-                  >
-                    Health Sync
-                  </Link>
-                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
-                    Team
-                  </Link>
-                </>
-              ) : (
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
+                Analytics
+              </Link>
+              <Link
+                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                to="/app/wearables/new"
+              >
+                Wearables
+              </Link>
+              <Link
+                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
+                to="/app/wearables/import"
+              >
+                Health Sync
+              </Link>
+              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
+                Team
+              </Link>
+              {!hasProPlan ? (
                 <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/upgrade">
                   Upgrade
                 </Link>
-              )}
+              ) : null}
             </>
           ) : null}
           {isProfessional ? (
@@ -693,7 +721,13 @@ function MilestoneOneApp() {
           </div>
         ) : null}
 
-        <Suspense fallback={<div className="mx-auto w-full max-w-3xl"><LoadingCard lines={4} /></div>}>
+        <Suspense
+          fallback={
+            <div className="mx-auto w-full max-w-3xl">
+              <LoadingCard lines={4} />
+            </div>
+          }
+        >
           <Routes>
             <Route
               element={authUser ? <Navigate replace to="/app" /> : <AuthScreen />}
@@ -786,10 +820,10 @@ function MilestoneOneApp() {
               />
               <Route
                 element={
-                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                  profile?.role === 'trainee' ? (
                     <TeamAccessManager />
                   ) : (
-                    <Navigate replace to="/app/settings" />
+                    <Navigate replace to="/app" />
                   )
                 }
                 path="team"
