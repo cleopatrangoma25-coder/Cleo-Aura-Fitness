@@ -26,11 +26,7 @@ export function ProfessionalSessions() {
   const [message, setMessage] = useState<string | null>(null)
 
   const isAllowedRole = role === 'trainer' || role === 'nutritionist' || role === 'counsellor'
-  const professionalRole: 'trainer' | 'nutritionist' | 'counsellor' | null = isAllowedRole
-    ? (role as 'trainer' | 'nutritionist' | 'counsellor')
-    : null
-
-  if (!professionalRole) {
+  if (!isAllowedRole) {
     return (
       <Card className="p-5">
         <CardTitle>Sessions</CardTitle>
@@ -40,6 +36,7 @@ export function ProfessionalSessions() {
       </Card>
     )
   }
+  const professionalRole = role as 'trainer' | 'nutritionist' | 'counsellor'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
