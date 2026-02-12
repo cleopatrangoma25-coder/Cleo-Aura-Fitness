@@ -27,21 +27,56 @@ export const WearableSummarySchema = z.object({
   updatedAt: z.unknown(),
 })
 
-export const UpsertWearableSummarySchema = WearableSummarySchema.omit({
+const UpsertWearableSummaryBaseSchema = WearableSummarySchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).refine(
-  value =>
+})
+
+function hasAtLeastOneWearableMetric(value: {
+  steps: number | null
+  activeCaloriesKcal: number | null
+  workoutMinutes: number | null
+  avgHeartRateBpm: number | null
+  restingHeartRateBpm: number | null
+  sleepHours: number | null
+  readinessScore: number | null
+}) {
+  return (
     value.steps !== null ||
     value.activeCaloriesKcal !== null ||
     value.workoutMinutes !== null ||
     value.avgHeartRateBpm !== null ||
     value.restingHeartRateBpm !== null ||
     value.sleepHours !== null ||
-    value.readinessScore !== null,
+    value.readinessScore !== null
+  )
+}
+
+export const UpsertWearableSummarySchema = UpsertWearableSummaryBaseSchema.refine(
+  hasAtLeastOneWearableMetric,
   { message: 'Provide at least one wearable metric.' }
 )
 
+export const HealthKitDailySummarySchema = UpsertWearableSummaryBaseSchema.omit({
+  source: true,
+}).extend({
+  source: z.literal('apple_watch').default('apple_watch'),
+}).refine(hasAtLeastOneWearableMetric, {
+  message: 'Provide at least one wearable metric.',
+})
+
+export const HealthKitSyncPayloadSchema = z.object({
+  version: z.literal('2026-02-12'),
+  device: z.object({
+    platform: z.literal('ios'),
+    appVersion: z.string().min(1),
+    timezone: z.string().min(1),
+  }),
+  summaries: z.array(HealthKitDailySummarySchema).min(1).max(366),
+})
+
 export type WearableSummary = z.infer<typeof WearableSummarySchema>
 export type UpsertWearableSummaryInput = z.infer<typeof UpsertWearableSummarySchema>
+export type HealthKitDailySummary = z.infer<typeof HealthKitDailySummarySchema>
+export type HealthKitSyncPayload = z.infer<typeof HealthKitSyncPayloadSchema>

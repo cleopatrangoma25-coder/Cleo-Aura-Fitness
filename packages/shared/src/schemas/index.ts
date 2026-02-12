@@ -42,8 +42,16 @@ export {
   WEARABLE_SOURCE_LABELS,
   WearableSummarySchema,
   UpsertWearableSummarySchema,
+  HealthKitDailySummarySchema,
+  HealthKitSyncPayloadSchema,
 } from './wearable'
-export type { WearableSource, WearableSummary, UpsertWearableSummaryInput } from './wearable'
+export type {
+  WearableSource,
+  WearableSummary,
+  UpsertWearableSummaryInput,
+  HealthKitDailySummary,
+  HealthKitSyncPayload,
+} from './wearable'
 
 export {
   ProfessionalRoleEnum,

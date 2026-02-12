@@ -22,6 +22,7 @@ import { ProfessionalClientView } from './features/team/ProfessionalClientView'
 import { ProgressMeasurementForm } from './features/progress/ProgressMeasurementForm'
 import { ProgressAnalyticsPage } from './features/progress/ProgressAnalyticsPage'
 import { WearableSummaryForm } from './features/wearables/WearableSummaryForm'
+import { WearableSyncImportPage } from './features/wearables/WearableSyncImportPage'
 import { ProUpgradePage } from './features/billing/ProUpgradePage'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
@@ -401,6 +402,9 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
                   <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/wearables/new">
                     Wearables
                   </Link>
+                  <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/wearables/import">
+                    Health Sync
+                  </Link>
                   <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
                     Team
                   </Link>
@@ -739,6 +743,16 @@ function MilestoneOneApp() {
                 )
               }
               path="wearables/new"
+            />
+            <Route
+              element={
+                profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                  <WearableSyncImportPage />
+                ) : (
+                  <Navigate replace to="/app/settings" />
+                )
+              }
+              path="wearables/import"
             />
             <Route
               element={

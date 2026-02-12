@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import {
   UpsertWearableSummarySchema,
   WEARABLE_SOURCE_LABELS,
@@ -98,6 +98,13 @@ export function WearableSummaryForm() {
       <h2 className="text-xl font-semibold">Log Wearable Summary</h2>
       <p className="mt-1 text-sm text-slate-600">
         Daily summary entry to prepare for Apple Watch / HealthKit integrations.
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
+        Have iOS companion payload JSON?{' '}
+        <Link className="text-emerald-700 underline" to="/app/wearables/import">
+          Use HealthKit Sync Import
+        </Link>
+        .
       </p>
 
       <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>

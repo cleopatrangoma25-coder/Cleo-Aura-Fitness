@@ -73,7 +73,7 @@ export function useWearablesSummary(traineeId: string, enabled = true) {
     void fetchEntries()
   }, [fetchEntries])
 
-  async function upsertSummary(input: UpsertWearableSummaryInput): Promise<void> {
+  async function persistSummary(input: UpsertWearableSummaryInput): Promise<void> {
     const dayId = toDayId(input.date)
     const dayRef = doc(db, 'trainees', traineeId, 'wearablesSummary', dayId)
     const existing = await getDoc(dayRef)
@@ -88,9 +88,20 @@ export function useWearablesSummary(traineeId: string, enabled = true) {
       },
       { merge: true }
     )
+  }
+
+  async function upsertSummary(input: UpsertWearableSummaryInput): Promise<void> {
+    await persistSummary(input)
+    await fetchEntries()
+  }
+
+  async function upsertManySummaries(inputs: UpsertWearableSummaryInput[]): Promise<void> {
+    for (const input of inputs) {
+      await persistSummary(input)
+    }
 
     await fetchEntries()
   }
 
-  return { entries, loading, error, upsertSummary, refetch: fetchEntries }
+  return { entries, loading, error, upsertSummary, upsertManySummaries, refetch: fetchEntries }
 }

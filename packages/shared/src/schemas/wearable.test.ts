@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { UpsertWearableSummarySchema, WearableSummarySchema } from './wearable'
+import {
+  HealthKitSyncPayloadSchema,
+  UpsertWearableSummarySchema,
+  WearableSummarySchema,
+} from './wearable'
 
 describe('WearableSummarySchema', () => {
   it('validates a complete wearable summary', () => {
@@ -54,6 +58,41 @@ describe('UpsertWearableSummarySchema', () => {
       restingHeartRateBpm: null,
       sleepHours: null,
       readinessScore: null,
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('HealthKitSyncPayloadSchema', () => {
+  it('accepts valid healthkit payload', () => {
+    const result = HealthKitSyncPayloadSchema.safeParse({
+      version: '2026-02-12',
+      device: {
+        platform: 'ios',
+        appVersion: '1.0.0',
+        timezone: 'America/New_York',
+      },
+      summaries: [
+        {
+          date: '2026-02-12',
+          source: 'apple_watch',
+          steps: 9344,
+          sleepHours: 7.1,
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects payload without summaries', () => {
+    const result = HealthKitSyncPayloadSchema.safeParse({
+      version: '2026-02-12',
+      device: {
+        platform: 'ios',
+        appVersion: '1.0.0',
+        timezone: 'America/New_York',
+      },
+      summaries: [],
     })
     expect(result.success).toBe(false)
   })

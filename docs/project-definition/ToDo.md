@@ -205,7 +205,7 @@ Status update (2026-02-12):
 - Completed: wearable summary schema + validation, trainee wearable logging flow, trainee dashboard overlay.
 - Completed: team permission module for wearable summaries and Firestore rule enforcement.
 - Completed: professional client wearable insights view (read-only, permission-gated).
-- Pending in later phase: direct HealthKit sync implementation (Apple Watch -> Firestore automation).
+- Completed: HealthKit Phase 2 app path via validated iOS companion payload import into `wearablesSummary`.
 
 Milestone 9 — Freemium, Hardening & Launch
 

@@ -240,7 +240,7 @@ Planned approach:
 
 MVP: Manual logging + wearable summaries
 
-Phase 2: iOS companion app writing summaries to Firestore
+Phase 2: iOS companion payload sync path implemented via validated JSON import into `wearablesSummary`
 
 10. Analytics & Dashboards
     Trainee Dashboard
