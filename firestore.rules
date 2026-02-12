@@ -158,9 +158,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isProfessionalUser()
         && request.resource.data.title is string
+        && request.resource.data.description is string
         && request.resource.data.scheduledAt is timestamp
         && request.resource.data.createdByUid == request.auth.uid
-        && request.resource.data.createdByRole == currentUserRole();
+        && request.resource.data.createdByRole in ['trainer', 'nutritionist', 'counsellor'];
       allow update, delete: if false;
     }
 
