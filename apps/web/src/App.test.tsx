@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const { mockOnAuthStateChanged } = vi.hoisted(() => ({
   mockOnAuthStateChanged: vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
@@ -48,6 +49,17 @@ vi.mock('./lib/firebase', () => ({
 
 import { App } from './App'
 
+function renderApp() {
+  const testQueryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={testQueryClient}>
+      <App />
+    </QueryClientProvider>
+  )
+}
+
 describe('Milestone 1 app shell', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -61,7 +73,7 @@ describe('Milestone 1 app shell', () => {
   })
 
   it('renders auth screen for unauthenticated users', async () => {
-    render(<App />)
+    renderApp()
 
     expect(
       await screen.findByRole('heading', {
@@ -77,7 +89,7 @@ describe('Milestone 1 app shell', () => {
   })
 
   it('shows role-selected signup context when switching to sign up', async () => {
-    render(<App />)
+    renderApp()
 
     const signUpButton = await screen.findByRole('button', { name: 'Sign up' })
     fireEvent.click(signUpButton)

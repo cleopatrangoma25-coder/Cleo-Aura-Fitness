@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   collection,
   deleteDoc,
@@ -20,6 +21,7 @@ import type {
 } from '@repo/shared'
 import { defaultModulesForRole } from '@repo/shared'
 import { db } from '../../lib/firebase'
+import { queryKeys } from '../../lib/queryKeys'
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   workouts: 'Workouts',
@@ -36,138 +38,184 @@ function randomInviteCode(): string {
   return Math.random().toString(36).slice(2, 10).toUpperCase()
 }
 
-export function useTeamAccess(traineeId: string, currentUserId: string) {
-  const [team, setTeam] = useState<TeamMember[]>([])
-  const [grants, setGrants] = useState<Grant[]>([])
-  const [invites, setInvites] = useState<Invite[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+async function fetchTeamData(traineeId: string) {
+  const [teamSnapshot, grantSnapshot, inviteSnapshot] = await Promise.all([
+    getDocs(collection(db, 'trainees', traineeId, 'teamMembers')),
+    getDocs(collection(db, 'trainees', traineeId, 'grants')),
+    getDocs(collection(db, 'trainees', traineeId, 'invites')),
+  ])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [teamSnapshot, grantSnapshot, inviteSnapshot] = await Promise.all([
-        getDocs(collection(db, 'trainees', traineeId, 'teamMembers')),
-        getDocs(collection(db, 'trainees', traineeId, 'grants')),
-        getDocs(collection(db, 'trainees', traineeId, 'invites')),
-      ])
-
-      const nextTeam: TeamMember[] = teamSnapshot.docs.map(snapshotDoc => {
-        const data = snapshotDoc.data()
-        return {
-          uid: snapshotDoc.id,
-          role: data.role,
-          displayName: data.displayName ?? '',
-          email: data.email ?? '',
-          status: data.status ?? 'active',
-          invitedAt: data.invitedAt,
-          acceptedAt: data.acceptedAt ?? null,
-          updatedAt: data.updatedAt,
-        }
-      })
-
-      const nextGrants: Grant[] = grantSnapshot.docs.map(snapshotDoc => {
-        const data = snapshotDoc.data()
-        return {
-          memberUid: snapshotDoc.id,
-          role: data.role,
-          active: Boolean(data.active),
-          modules: {
-            workouts: Boolean(data.modules?.workouts),
-            recovery: Boolean(data.modules?.recovery),
-            nutrition: Boolean(data.modules?.nutrition),
-            wellbeing: Boolean(data.modules?.wellbeing),
-            progress: Boolean(data.modules?.progress),
-            wearables: Boolean(data.modules?.wearables),
-          },
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-          inviteCode: data.inviteCode,
-        } as Grant
-      })
-
-      const nextInvites: Invite[] = inviteSnapshot.docs
-        .map(snapshotDoc => {
-          const data = snapshotDoc.data()
-          return {
-            code: snapshotDoc.id,
-            traineeId: data.traineeId,
-            role: data.role,
-            createdBy: data.createdBy,
-            status: data.status,
-            createdAt: data.createdAt,
-            acceptedAt: data.acceptedAt ?? null,
-            acceptedByUid: data.acceptedByUid ?? null,
-            acceptedByEmail: data.acceptedByEmail ?? null,
-            updatedAt: data.updatedAt,
-          } as Invite
-        })
-        .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
-
-      setTeam(nextTeam)
-      setGrants(nextGrants)
-      setInvites(nextInvites)
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Failed to load team access data.')
-    } finally {
-      setLoading(false)
+  const team: TeamMember[] = teamSnapshot.docs.map(snapshotDoc => {
+    const data = snapshotDoc.data()
+    return {
+      uid: snapshotDoc.id,
+      role: data.role,
+      displayName: data.displayName ?? '',
+      email: data.email ?? '',
+      status: data.status ?? 'active',
+      invitedAt: data.invitedAt,
+      acceptedAt: data.acceptedAt ?? null,
+      updatedAt: data.updatedAt,
     }
-  }, [traineeId])
+  })
 
-  useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+  const grants: Grant[] = grantSnapshot.docs.map(snapshotDoc => {
+    const data = snapshotDoc.data()
+    return {
+      memberUid: snapshotDoc.id,
+      role: data.role,
+      active: Boolean(data.active),
+      modules: {
+        workouts: Boolean(data.modules?.workouts),
+        recovery: Boolean(data.modules?.recovery),
+        nutrition: Boolean(data.modules?.nutrition),
+        wellbeing: Boolean(data.modules?.wellbeing),
+        progress: Boolean(data.modules?.progress),
+        wearables: Boolean(data.modules?.wearables),
+      },
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      inviteCode: data.inviteCode,
+    } as Grant
+  })
+
+  const invites: Invite[] = inviteSnapshot.docs
+    .map(snapshotDoc => {
+      const data = snapshotDoc.data()
+      return {
+        code: snapshotDoc.id,
+        traineeId: data.traineeId,
+        role: data.role,
+        createdBy: data.createdBy,
+        status: data.status,
+        createdAt: data.createdAt,
+        acceptedAt: data.acceptedAt ?? null,
+        acceptedByUid: data.acceptedByUid ?? null,
+        acceptedByEmail: data.acceptedByEmail ?? null,
+        updatedAt: data.updatedAt,
+      } as Invite
+    })
+    .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+
+  return { team, grants, invites }
+}
+
+export function useTeamAccess(traineeId: string, currentUserId: string) {
+  const queryClient = useQueryClient()
+  const queryKey = queryKeys.teamAccess(traineeId)
+
+  const {
+    data,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey,
+    queryFn: () => fetchTeamData(traineeId),
+  })
+
+  const team = data?.team ?? []
+  const grants = data?.grants ?? []
+  const invites = data?.invites ?? []
 
   const members = useMemo<TeamView[]>(() => {
     const grantMap = new Map(grants.map(grant => [grant.memberUid, grant]))
     return team.map(member => ({ ...member, grant: grantMap.get(member.uid) ?? null }))
   }, [grants, team])
 
-  async function createInvite(role: ProfessionalRole): Promise<{ code: string; link: string }> {
-    const code = randomInviteCode()
-    await setDoc(doc(db, 'trainees', traineeId, 'invites', code), {
-      code,
-      traineeId,
-      role,
-      createdBy: currentUserId,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-      acceptedAt: null,
-      acceptedByUid: null,
-      acceptedByEmail: null,
-      updatedAt: serverTimestamp(),
-    })
-    await fetchData()
+  const createInviteMutation = useMutation({
+    mutationFn: async (role: ProfessionalRole) => {
+      const code = randomInviteCode()
+      await setDoc(doc(db, 'trainees', traineeId, 'invites', code), {
+        code,
+        traineeId,
+        role,
+        createdBy: currentUserId,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        acceptedAt: null,
+        acceptedByUid: null,
+        acceptedByEmail: null,
+        updatedAt: serverTimestamp(),
+      })
+      const link = `${window.location.origin}/app/invite?traineeId=${encodeURIComponent(traineeId)}&code=${encodeURIComponent(code)}`
+      return { code, link }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+    },
+  })
 
-    const link = `${window.location.origin}/app/invite?traineeId=${encodeURIComponent(traineeId)}&code=${encodeURIComponent(code)}`
-    return { code, link }
+  const toggleModuleMutation = useMutation({
+    mutationFn: async ({
+      memberUid,
+      module,
+      enabled,
+    }: {
+      memberUid: string
+      module: ModuleKey
+      enabled: boolean
+    }) => {
+      await updateDoc(doc(db, 'trainees', traineeId, 'grants', memberUid), {
+        [`modules.${module}`]: enabled,
+        active: true,
+        updatedAt: serverTimestamp(),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+    },
+  })
+
+  const setGrantActiveMutation = useMutation({
+    mutationFn: async ({ memberUid, active }: { memberUid: string; active: boolean }) => {
+      await updateDoc(doc(db, 'trainees', traineeId, 'grants', memberUid), {
+        active,
+        updatedAt: serverTimestamp(),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+    },
+  })
+
+  const revokeAccessMutation = useMutation({
+    mutationFn: async (memberUid: string) => {
+      await Promise.all([
+        deleteDoc(doc(db, 'trainees', traineeId, 'teamMembers', memberUid)),
+        deleteDoc(doc(db, 'trainees', traineeId, 'grants', memberUid)),
+      ])
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+    },
+  })
+
+  async function createInvite(role: ProfessionalRole): Promise<{ code: string; link: string }> {
+    return createInviteMutation.mutateAsync(role)
   }
 
-  async function toggleModule(memberUid: string, module: ModuleKey, enabled: boolean): Promise<void> {
-    await updateDoc(doc(db, 'trainees', traineeId, 'grants', memberUid), {
-      [`modules.${module}`]: enabled,
-      active: true,
-      updatedAt: serverTimestamp(),
-    })
-    await fetchData()
+  async function toggleModule(
+    memberUid: string,
+    module: ModuleKey,
+    enabled: boolean
+  ): Promise<void> {
+    await toggleModuleMutation.mutateAsync({ memberUid, module, enabled })
   }
 
   async function setGrantActive(memberUid: string, active: boolean): Promise<void> {
-    await updateDoc(doc(db, 'trainees', traineeId, 'grants', memberUid), {
-      active,
-      updatedAt: serverTimestamp(),
-    })
-    await fetchData()
+    await setGrantActiveMutation.mutateAsync({ memberUid, active })
   }
 
   async function revokeAccess(memberUid: string): Promise<void> {
-    await Promise.all([
-      deleteDoc(doc(db, 'trainees', traineeId, 'teamMembers', memberUid)),
-      deleteDoc(doc(db, 'trainees', traineeId, 'grants', memberUid)),
-    ])
-    await fetchData()
+    await revokeAccessMutation.mutateAsync(memberUid)
   }
+
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Failed to load team access data.'
+    : null
 
   return {
     loading,
@@ -178,7 +226,7 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
     toggleModule,
     setGrantActive,
     revokeAccess,
-    refetch: fetchData,
+    refetch,
   }
 }
 

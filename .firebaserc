@@ -1,6 +1,8 @@
 {
   "projects": {
+    "dev": "cleo-aura-fitness-dev",
     "stage": "cleo-aura-fitness-stage",
+    "main": "cleo-aura-fitness-main",
     "default": "cleo-aura-fitness-stage"
   }
 }
