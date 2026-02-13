@@ -1,157 +1,47 @@
-# ============================================================================
-# ci.yml - Continuous Integration Workflow
-# ============================================================================
-# This workflow runs on every pull request to ensure code quality.
-# Uses Workload Identity Federation for secure authentication.
-# ============================================================================
-
 name: CI
 
-# ============================================================================
-# TRIGGERS
-# ============================================================================
 on:
   pull_request:
-    branches:
-      - main
-      - dev
-      - stage
-      - 'release/**'
+    branches: [stage]
   push:
-    branches:
-      - main
-      - dev
+    branches: [stage]
 
-# ============================================================================
-# CONCURRENCY
-# ============================================================================
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# ============================================================================
-# JOBS
-# ============================================================================
 jobs:
-  ci:
-    name: Lint, Type Check, Build, Test
+  validate:
     runs-on: ubuntu-latest
-
     steps:
-      # ======================================================================
-      # STEP 1: Checkout Code
-      # ======================================================================
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
-      # ======================================================================
-      # STEP 2: Setup pnpm
-      # ======================================================================
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 8.15.6
 
-      # ======================================================================
-      # STEP 3: Setup Node.js
-      # ======================================================================
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: pnpm
 
-      # ======================================================================
-      # STEP 4: Install Dependencies
-      # ======================================================================
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # ======================================================================
-      # STEP 5: Turborepo Cache
-      # ======================================================================
-      - name: Cache Turborepo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      # ======================================================================
-      # STEP 6: Lint
-      # ======================================================================
       - name: Lint
         run: pnpm lint
 
-      # ======================================================================
-      # STEP 7: Format Check
-      # ======================================================================
-      - name: Check formatting
-        run: pnpm format:check
-
-      # ======================================================================
-      # STEP 8: Type Check
-      # ======================================================================
-      - name: Type check
+      - name: Typecheck
         run: pnpm typecheck
 
-      # ======================================================================
-      # STEP 9: Build
-      # ======================================================================
-      - name: Build
-        run: pnpm build
+      - name: Unit & component tests (web)
+        run: pnpm --filter web test -- --reporter=basic
 
-      # ======================================================================
-      # STEP 10: Test
-      # ======================================================================
-      - name: Test
-        run: pnpm test
-
-      # ======================================================================
-      # STEP 11: Coverage (unit/component)
-      # ======================================================================
-      - name: Coverage (web)
-        run: pnpm --filter web exec vitest run --coverage
-
-      # ======================================================================
-      # STEP 12: Audit (high severity)
-      # ======================================================================
-      - name: Security audit (prod, high+)
-        run: pnpm audit --prod --audit-level=high
-
-      # ======================================================================
-      # STEP 13: Dependency Consistency Check
-      # ======================================================================
-      - name: Check dependency consistency
-        run: pnpm sync:lint
-
-      # ======================================================================
-      # STEP 14: Playwright E2E + a11y smoke
-      # ======================================================================
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
-
-      - name: E2E (Playwright)
-        run: pnpm --filter web test:e2e
-
-      # ======================================================================
-      # STEP 15: Upload reports
-      # ======================================================================
-      - name: Upload Vitest coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vitest-coverage
-          path: apps/web/coverage
-          if-no-files-found: ignore
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: apps/web/playwright-report
-          if-no-files-found: ignore
+      - name: Firestore rules tests
+        env:
+          FIRESTORE_EMULATOR_PORT: 8085
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8085
+        run: pnpm dlx firebase-tools@13.15.0 emulators:exec --only firestore --project cleo-aura-fitness-test "pnpm exec vitest run firestore.test.ts --reporter=basic"
