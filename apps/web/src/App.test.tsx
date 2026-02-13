@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ServiceProvider } from './providers/ServiceProvider'
 
 const { mockOnAuthStateChanged } = vi.hoisted(() => ({
   mockOnAuthStateChanged: vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
@@ -38,7 +39,10 @@ vi.mock('firebase/firestore', () => ({
   where: vi.fn(() => ({})),
   orderBy: vi.fn(() => ({})),
   getDocs: vi.fn(async () => ({ docs: [] })),
-  Timestamp: { fromDate: vi.fn(() => ({})) },
+  Timestamp: {
+    fromDate: vi.fn(() => ({ toDate: () => new Date() })),
+    now: vi.fn(() => ({ toDate: () => new Date() })),
+  },
 }))
 
 vi.mock('./lib/firebase', () => ({
@@ -55,7 +59,9 @@ function renderApp() {
   })
   return render(
     <QueryClientProvider client={testQueryClient}>
-      <App />
+      <ServiceProvider>
+        <App />
+      </ServiceProvider>
     </QueryClientProvider>
   )
 }

@@ -1,6 +1,7 @@
 import { Link, useOutletContext } from 'react-router-dom'
 import { MUSCLE_GROUP_LABELS } from '@repo/shared'
 import { Card } from '@repo/ui/Card'
+import { Button } from '@repo/ui/Button'
 import type { User } from 'firebase/auth'
 import { useWorkouts } from '../workouts/useWorkouts'
 import { useRecovery } from '../recovery/useRecovery'
@@ -10,6 +11,7 @@ import { useProfessionalClients } from '../team/useProfessionalClients'
 import { useProgressMeasurements } from '../progress/useProgressMeasurements'
 import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
+import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -112,6 +114,15 @@ export function TraineeDashboard() {
     summary,
   } = useProfessionalClients(user.uid, isProfessional)
   const { sessions, loading: sessionsLoading, error: sessionsError } = useSessions('upcoming')
+  const {
+    enrollments,
+    loading: enrollmentLoading,
+    error: enrollmentError,
+    savingId: enrollmentSavingId,
+    enroll: enrollInSession,
+    cancel: cancelEnrollment,
+  } = useSessionEnrollments(user.uid)
+  const enrolledSessionIds = new Set(enrollments.map(item => item.sessionId))
   const activeClients = clients.filter(client => client.active)
   const roleFocusedClientsList = activeClients.filter(client => {
     if (profile.role === 'trainer') {
@@ -244,7 +255,7 @@ export function TraineeDashboard() {
               <div>
                 <h3 className="text-lg font-semibold">Upcoming coach sessions</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Sessions posted by trainers and nutritionists.
+                  Sessions posted by trainers, nutritionists, and counsellors.
                 </p>
               </div>
             </div>
@@ -252,6 +263,10 @@ export function TraineeDashboard() {
               <p className="mt-2 text-sm text-slate-500">Loading sessions...</p>
             ) : sessionsError ? (
               <p className="mt-2 text-sm text-red-600">{sessionsError}</p>
+            ) : enrollmentLoading ? (
+              <p className="mt-2 text-sm text-slate-500">Loading enrollment status...</p>
+            ) : enrollmentError ? (
+              <p className="mt-2 text-sm text-red-600">{enrollmentError}</p>
             ) : sessions.length === 0 ? (
               <p className="mt-2 text-sm text-slate-500">No sessions have been posted yet.</p>
             ) : (
@@ -268,9 +283,30 @@ export function TraineeDashboard() {
                       <p className="mt-1 text-xs text-slate-500">
                         When: {session.scheduledAt?.toDate().toLocaleString() ?? 'TBD'}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        By: {session.createdByName} ({session.createdByRole})
-                      </p>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-xs text-slate-500">
+                          By: {session.createdByName} ({session.createdByRole})
+                        </p>
+                        <Button
+                          size="sm"
+                          variant={enrolledSessionIds.has(session.id) ? 'secondary' : 'outline'}
+                          disabled={enrollmentSavingId === session.id}
+                          onClick={() =>
+                            enrolledSessionIds.has(session.id)
+                              ? cancelEnrollment(session.id)
+                              : enrollInSession(session.id)
+                          }
+                          type="button"
+                        >
+                          {enrolledSessionIds.has(session.id)
+                            ? enrollmentSavingId === session.id
+                              ? 'Cancelling...'
+                              : 'Enrolled — Cancel'
+                            : enrollmentSavingId === session.id
+                              ? 'Enrolling...'
+                              : 'Enroll'}
+                        </Button>
+                      </div>
                     </article>
                   ))}
               </div>

@@ -30,6 +30,16 @@ service cloud.firestore {
       return currentUserRole() in ['trainer', 'nutritionist', 'counsellor'];
     }
 
+    function sessionExists(sessionId) {
+      return sessionId is string
+        && exists(/databases/$(database)/documents/sessions/$(sessionId));
+    }
+
+    function sessionCreatedBy(sessionId, uid) {
+      return sessionExists(sessionId)
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdByUid == uid;
+    }
+
     function hasActiveGrant(traineeId) {
       return isSignedIn()
         && exists(/databases/$(database)/documents/trainees/$(traineeId)/grants/$(request.auth.uid))
@@ -159,10 +169,26 @@ service cloud.firestore {
       allow create: if isProfessionalUser()
         && request.resource.data.title is string
         && request.resource.data.description is string
+        && request.resource.data.audience in ['trainee', 'trainer', 'nutritionist', 'counsellor', 'all']
         && request.resource.data.scheduledAt is timestamp
         && request.resource.data.createdByUid == request.auth.uid
-        && request.resource.data.createdByRole in ['trainer', 'nutritionist', 'counsellor'];
+        && request.resource.data.createdByRole in ['trainer', 'nutritionist', 'counsellor']
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault is bool);
       allow update, delete: if false;
+    }
+
+    // Session enrollments (created by trainees)
+    match /sessionEnrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (
+        resource.data.traineeId == request.auth.uid
+          || sessionCreatedBy(resource.data.sessionId, request.auth.uid)
+      );
+      allow create: if isTraineeUser()
+        && request.resource.data.sessionId is string
+        && request.resource.data.traineeId == request.auth.uid
+        && sessionExists(request.resource.data.sessionId);
+      allow delete: if isSignedIn() && resource.data.traineeId == request.auth.uid;
+      allow update: if false;
     }
 
     match /{document=**} {

@@ -1,9 +1,10 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { Button } from '@repo/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/Card'
-import { createSessionOffer, useSessions } from './useSessions'
+import { useSessions } from './useSessions'
+import { useServices } from '../../providers/ServiceProvider'
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -12,8 +13,41 @@ type AppContext = {
   profile: { uid: string; displayName: string; role: UserRole | null }
 }
 
+const DEFAULT_SESSION_TEMPLATES: Record<
+  'trainer' | 'nutritionist' | 'counsellor',
+  Array<{ title: string; description: string; audience: 'trainee' | 'all' }>
+> = {
+  trainer: [
+    {
+      title: 'Baseline Training Consult',
+      description: '30-minute intro call to review goals, schedule, and equipment.',
+      audience: 'trainee',
+    },
+    {
+      title: 'Form Check & Movement Screen',
+      description: 'Group session to assess form on core lifts and mobility.',
+      audience: 'trainee',
+    },
+  ],
+  nutritionist: [
+    {
+      title: 'Nutrition Foundations',
+      description: 'Macro basics, hydration, and quick wins for the next 7 days.',
+      audience: 'trainee',
+    },
+  ],
+  counsellor: [
+    {
+      title: 'Wellbeing Kickoff',
+      description: 'Stress, sleep, and mood baseline with simple daily practices.',
+      audience: 'trainee',
+    },
+  ],
+}
+
 export function ProfessionalSessions() {
   const { user, profile } = useOutletContext<AppContext>()
+  const { session: sessionService } = useServices()
   const role = profile.role
   const { sessions, loading, error, reload } = useSessions('all')
   const [title, setTitle] = useState('')
@@ -24,6 +58,8 @@ export function ProfessionalSessions() {
   >('trainee')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [seedingDefaults, setSeedingDefaults] = useState(false)
+  const seededDefaultsRef = useRef(false)
 
   const isAllowedRole = role === 'trainer' || role === 'nutritionist' || role === 'counsellor'
   if (!isAllowedRole) {
@@ -38,6 +74,56 @@ export function ProfessionalSessions() {
   }
   const professionalRole = role as 'trainer' | 'nutritionist' | 'counsellor'
 
+  useEffect(() => {
+    if (!isAllowedRole || loading || seededDefaultsRef.current) return
+    const hasDefault = sessions.some(
+      session => session.createdByUid === user.uid && session.isDefault === true
+    )
+    if (hasDefault) {
+      seededDefaultsRef.current = true
+      return
+    }
+
+    async function seedDefaultSessions() {
+      setSeedingDefaults(true)
+      seededDefaultsRef.current = true
+      try {
+        const base = new Date()
+        base.setHours(12, 0, 0, 0)
+        const templates = DEFAULT_SESSION_TEMPLATES[professionalRole]
+        for (const [index, template] of templates.entries()) {
+          const scheduledAt = new Date(base.getTime() + (index + 1) * 24 * 60 * 60 * 1000)
+          await sessionService.create({
+            ...template,
+            scheduledAt,
+            createdByUid: user.uid,
+            createdByRole: professionalRole,
+            createdByName: profile.displayName ?? user.email ?? 'Coach',
+            isDefault: true,
+          })
+        }
+        setMessage('Added default sessions for your role.')
+        void reload()
+      } catch (caught) {
+        setMessage(caught instanceof Error ? caught.message : 'Could not seed default sessions.')
+      } finally {
+        setSeedingDefaults(false)
+      }
+    }
+
+    void seedDefaultSessions()
+  }, [
+    isAllowedRole,
+    loading,
+    professionalRole,
+    profile.displayName,
+    reload,
+    sessions,
+    sessionService,
+    user.email,
+    user.uid,
+  ])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!scheduledAt) {
@@ -47,7 +133,7 @@ export function ProfessionalSessions() {
     setSaving(true)
     setMessage(null)
     try {
-      await createSessionOffer({
+      await sessionService.create({
         title: title.trim(),
         description: description.trim(),
         audience,
@@ -73,7 +159,12 @@ export function ProfessionalSessions() {
     <div className="space-y-4">
       <Card className="p-5">
         <CardHeader>
-          <CardTitle>Create a session</CardTitle>
+          <CardTitle>
+            Create a session
+            {seedingDefaults ? (
+              <span className="ml-2 text-xs font-medium text-slate-500">Seeding defaults...</span>
+            ) : null}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <form className="space-y-3" onSubmit={handleSubmit}>
@@ -153,7 +244,14 @@ export function ProfessionalSessions() {
               .filter(session => session.createdByUid === user.uid)
               .map(session => (
                 <article className="rounded border bg-slate-50 p-3" key={session.id}>
-                  <p className="font-semibold">{session.title}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold">{session.title}</p>
+                    {session.isDefault ? (
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+                        Default
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-sm text-slate-600">{session.description}</p>
                   <p className="text-xs text-slate-500">
                     Scheduled: {session.scheduledAt?.toDate().toLocaleString() ?? 'TBD'}

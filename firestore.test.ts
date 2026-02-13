@@ -11,12 +11,29 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 let testEnv: RulesTestEnvironment
 
 beforeAll(async () => {
+  const hostEnv = process.env.FIRESTORE_EMULATOR_HOST
+  let host = 'localhost'
+  let port = 8085
+  if (hostEnv) {
+    const [parsedHost, parsedPort] = hostEnv.split(':')
+    host = parsedHost || host
+    if (parsedPort) {
+      const asNumber = parseInt(parsedPort, 10)
+      if (!Number.isNaN(asNumber)) port = asNumber
+    }
+  }
+  const portEnv = process.env.FIRESTORE_EMULATOR_PORT
+  if (portEnv) {
+    const asNumber = parseInt(portEnv, 10)
+    if (!Number.isNaN(asNumber)) port = asNumber
+  }
+
   testEnv = await initializeTestEnvironment({
     projectId: 'cleo-aura-fitness-test',
     firestore: {
       rules: readFileSync('firestore.rules', 'utf8'),
-      host: 'localhost',
-      port: 8080,
+      host,
+      port,
     },
   })
 })
@@ -527,6 +544,85 @@ describe('Firestore Security Rules', () => {
       const trainerCtx = testEnv.authenticatedContext(trainerId)
       const wearableRef = doc(trainerCtx.firestore(), 'trainees', traineeId, 'wearablesSummary', '20260212')
       await assertFails(getDoc(wearableRef))
+    })
+  })
+
+  describe('Sessions and enrollments', () => {
+    it('allows professional to create a session with default flag', async () => {
+      const trainerId = 'trainer-session'
+      await seedUser(trainerId, 'trainer')
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const sessionRef = doc(trainerCtx.firestore(), 'sessions', 'session-default')
+
+      await assertSucceeds(
+        setDoc(sessionRef, {
+          title: 'Baseline consult',
+          description: '30 minute kickoff',
+          audience: 'trainee',
+          scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
+          createdByUid: trainerId,
+          createdByRole: 'trainer',
+          isDefault: true,
+        })
+      )
+    })
+
+    it('allows trainee enrollment and lets the session creator read it', async () => {
+      const traineeId = 'trainee-enroll'
+      const trainerId = 'trainer-enroll'
+      const otherTrainerId = 'trainer-other'
+      await seedUser(traineeId, 'trainee')
+      await seedUser(trainerId, 'trainer')
+      await seedUser(otherTrainerId, 'trainer')
+
+      const trainerCtx = testEnv.authenticatedContext(trainerId)
+      const traineeCtx = testEnv.authenticatedContext(traineeId)
+      const otherCtx = testEnv.authenticatedContext(otherTrainerId)
+
+      const sessionRef = doc(trainerCtx.firestore(), 'sessions', 'session-enroll')
+      await assertSucceeds(
+        setDoc(sessionRef, {
+          title: 'Mobility 101',
+          description: 'Group session',
+          audience: 'trainee',
+          scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          createdByUid: trainerId,
+          createdByRole: 'trainer',
+        })
+      )
+
+      const enrollmentRef = doc(
+        traineeCtx.firestore(),
+        'sessionEnrollments',
+        `session-enroll_${traineeId}`
+      )
+      await assertSucceeds(
+        setDoc(enrollmentRef, {
+          sessionId: 'session-enroll',
+          traineeId,
+          createdAt: new Date(),
+        })
+      )
+
+      await assertSucceeds(
+        getDoc(doc(trainerCtx.firestore(), 'sessionEnrollments', `session-enroll_${traineeId}`))
+      )
+      await assertFails(
+        getDoc(doc(otherCtx.firestore(), 'sessionEnrollments', `session-enroll_${traineeId}`))
+      )
+
+      const invalidEnrollment = doc(
+        otherCtx.firestore(),
+        'sessionEnrollments',
+        `session-enroll_${otherTrainerId}`
+      )
+      await assertFails(
+        setDoc(invalidEnrollment, {
+          sessionId: 'session-enroll',
+          traineeId: otherTrainerId,
+          createdAt: new Date(),
+        })
+      )
     })
   })
 })
