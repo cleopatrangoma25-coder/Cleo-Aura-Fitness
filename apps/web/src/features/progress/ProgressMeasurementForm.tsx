@@ -69,7 +69,7 @@ export function ProgressMeasurementForm() {
     setIsSubmitting(true)
     try {
       await addEntry(parsed.data)
-      navigate('/app')
+      navigate('/app/analytics')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Failed to save progress entry.')
     } finally {

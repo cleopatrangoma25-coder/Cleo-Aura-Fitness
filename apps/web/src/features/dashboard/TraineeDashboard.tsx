@@ -13,6 +13,50 @@ import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
 import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
 
+function Sparkline({
+  points,
+  color,
+}: {
+  points: Array<{ label: string; value: number }>
+  color: string
+}) {
+  if (points.length === 0) return <p className="text-xs text-slate-500">Not enough data yet.</p>
+  const width = 220
+  const height = 72
+  const pad = 8
+  const min = Math.min(...points.map(p => p.value))
+  const max = Math.max(...points.map(p => p.value))
+  const span = max - min || 1
+  const coords = points.map((p, i) => {
+    const x =
+      points.length === 1
+        ? width / 2
+        : pad + (i / Math.max(1, points.length - 1)) * (width - pad * 2)
+    const y = height - pad - ((p.value - min) / span) * (height - pad * 2)
+    return { ...p, x, y }
+  })
+  const path = coords.map(c => `${c.x},${c.y}`).join(' ')
+  return (
+    <svg className="mt-1 h-[72px] w-full" viewBox={`0 0 ${width} ${height}`}>
+      <polyline
+        fill="none"
+        points={path}
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+      {coords.map(c => (
+        <circle cx={c.x} cy={c.y} r="3" fill={color} key={c.label}>
+          <title>
+            {c.label}: {c.value}
+          </title>
+        </circle>
+      ))}
+    </svg>
+  )
+}
+
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
 type AppContext = {
@@ -142,6 +186,14 @@ export function TraineeDashboard() {
   const recentEntries = timeline.slice(0, 5)
   const loading = workoutsLoading || recoveryLoading
   const latestWearable = wearableEntries[0] ?? null
+  const weightSpark = progressEntries
+    .filter(entry => typeof entry.bodyWeightKg === 'number')
+    .slice(-6)
+    .map(entry => ({ label: entry.date.slice(5), value: entry.bodyWeightKg as number }))
+  const recoverySpark = recovery.slice(-6).map(item => ({
+    label: item.date.slice(5),
+    value: 1,
+  }))
 
   const traineeInsights = (() => {
     const last28Cutoff = new Date()
@@ -285,6 +337,14 @@ export function TraineeDashboard() {
               <p className="mt-2 text-sm text-slate-500">No sessions have been posted yet.</p>
             ) : (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <article className="rounded border bg-white/70 p-3">
+                  <p className="text-sm font-semibold text-slate-800">Weight trend</p>
+                  <Sparkline color="#ec4899" points={weightSpark} />
+                </article>
+                <article className="rounded border bg-white/70 p-3">
+                  <p className="text-sm font-semibold text-slate-800">Recent recovery streak</p>
+                  <Sparkline color="#10b981" points={recoverySpark} />
+                </article>
                 {sessions
                   .filter(session => session.audience === 'all' || session.audience === 'trainee')
                   .slice(0, 4)
