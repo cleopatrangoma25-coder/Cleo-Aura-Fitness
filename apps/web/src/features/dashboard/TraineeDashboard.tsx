@@ -258,6 +258,12 @@ export function TraineeDashboard() {
                   Sessions posted by trainers, nutritionists, and counsellors.
                 </p>
               </div>
+              <Link
+                className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-900 hover:bg-rose-100"
+                to="/app/team"
+              >
+                Share invite with a coach
+              </Link>
             </div>
             {sessionsLoading ? (
               <p className="mt-2 text-sm text-slate-500" role="status" aria-live="polite">

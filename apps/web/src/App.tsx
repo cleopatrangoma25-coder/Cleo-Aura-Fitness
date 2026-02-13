@@ -409,6 +409,11 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
     return <Navigate replace to="/role-select" />
   }
 
+  const navPrimary =
+    'rounded-full px-3 py-1.5 text-sm font-semibold border border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100'
+  const navGhost =
+    'rounded-full px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-100 border border-transparent'
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5">
       <Card className="p-4">
@@ -423,52 +428,37 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           </Button>
         </div>
         <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
-          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app">
+          <Link className={navGhost} to="/app">
             Home
           </Link>
           {isTrainee ? (
             <>
-              <Link
-                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                to="/app/workouts/new"
-              >
+              <Link className={navPrimary} to="/app/workouts/new">
                 Log Workout
               </Link>
-              <Link
-                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                to="/app/recovery/new"
-              >
+              <Link className={navGhost} to="/app/recovery/new">
                 Log Recovery
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/check-in">
+              <Link className={navGhost} to="/app/check-in">
                 Daily Check-In
               </Link>
-              <Link
-                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                to="/app/progress/new"
-              >
+              <Link className={navGhost} to="/app/progress/new">
                 Log Progress
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/analytics">
+              <Link className={navGhost} to="/app/analytics">
                 Analytics
               </Link>
-              <Link
-                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                to="/app/wearables/new"
-              >
+              <Link className={navGhost} to="/app/wearables/new">
                 Wearables
               </Link>
-              <Link
-                className="rounded px-3 py-1.5 text-sm hover:bg-slate-100"
-                to="/app/wearables/import"
-              >
+              <Link className={navGhost} to="/app/wearables/import">
                 Health Sync
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/team">
+              <Link className={navPrimary} to="/app/team">
                 Team
               </Link>
               {!hasProPlan ? (
-                <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/upgrade">
+                <Link className={navGhost} to="/app/upgrade">
                   Upgrade
                 </Link>
               ) : null}
@@ -476,20 +466,20 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           ) : null}
           {isProfessional ? (
             <>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/invite">
+              <Link className={navPrimary} to="/app/invite">
                 Accept Invite
               </Link>
-              <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/sessions">
+              <Link className={navGhost} to="/app/sessions">
                 Sessions
               </Link>
             </>
           ) : null}
           {isTrainee ? (
-            <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/history">
+            <Link className={navGhost} to="/app/history">
               History
             </Link>
           ) : null}
-          <Link className="rounded px-3 py-1.5 text-sm hover:bg-slate-100" to="/app/settings">
+          <Link className={navGhost} to="/app/settings">
             Settings
           </Link>
         </nav>

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { Button } from '@repo/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/Card'
@@ -47,6 +47,7 @@ const DEFAULT_SESSION_TEMPLATES: Record<
 
 export function ProfessionalSessions() {
   const { user, profile } = useOutletContext<AppContext>()
+  const navigate = useNavigate()
   const { session: sessionService } = useServices()
   const role = profile.role
   const { sessions, loading, error, reload } = useSessions('all')
@@ -148,6 +149,7 @@ export function ProfessionalSessions() {
       setAudience('trainee')
       setMessage('Session posted.')
       void reload()
+      navigate('/app/sessions#mine')
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'Could not create session.')
     } finally {
