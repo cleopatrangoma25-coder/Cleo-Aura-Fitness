@@ -260,13 +260,21 @@ export function TraineeDashboard() {
               </div>
             </div>
             {sessionsLoading ? (
-              <p className="mt-2 text-sm text-slate-500">Loading sessions...</p>
+              <p className="mt-2 text-sm text-slate-500" role="status" aria-live="polite">
+                Loading sessions...
+              </p>
             ) : sessionsError ? (
-              <p className="mt-2 text-sm text-red-600">{sessionsError}</p>
+              <p className="mt-2 text-sm text-red-600" role="alert">
+                {sessionsError}
+              </p>
             ) : enrollmentLoading ? (
-              <p className="mt-2 text-sm text-slate-500">Loading enrollment status...</p>
+              <p className="mt-2 text-sm text-slate-500" role="status" aria-live="polite">
+                Loading enrollment status...
+              </p>
             ) : enrollmentError ? (
-              <p className="mt-2 text-sm text-red-600">{enrollmentError}</p>
+              <p className="mt-2 text-sm text-red-600" role="alert">
+                {enrollmentError}
+              </p>
             ) : sessions.length === 0 ? (
               <p className="mt-2 text-sm text-slate-500">No sessions have been posted yet.</p>
             ) : (

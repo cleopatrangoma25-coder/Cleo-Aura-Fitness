@@ -221,7 +221,11 @@ export function ProfessionalSessions() {
               </select>
             </label>
 
-            {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+            {message ? (
+              <p aria-live="polite" className="text-sm text-emerald-700">
+                {message}
+              </p>
+            ) : null}
 
             <Button disabled={saving} type="submit">
               {saving ? 'Posting...' : 'Post session'}

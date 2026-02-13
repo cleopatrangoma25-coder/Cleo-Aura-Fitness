@@ -14,6 +14,10 @@ const endpoint = import.meta.env.VITE_ERROR_MONITOR_ENDPOINT as string | undefin
 const environment = import.meta.env.MODE
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
 const release = import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_GIT_SHA ?? 'stage'
+const tracesSampleRate =
+  typeof import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE === 'string'
+    ? Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE)
+    : 0.05
 
 let sentryEnabled = false
 let Sentry: typeof import('@sentry/react') | null = null
@@ -82,7 +86,7 @@ export function initMonitoring() {
           dsn: sentryDsn,
           environment,
           release,
-          tracesSampleRate: 0.05,
+          tracesSampleRate: tracesSampleRate > 0 && tracesSampleRate <= 1 ? tracesSampleRate : 0.05,
         })
         sentryEnabled = true
       })
