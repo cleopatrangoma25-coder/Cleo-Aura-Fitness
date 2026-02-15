@@ -141,7 +141,9 @@ export function TeamAccessManager() {
                     : null
                 const expires =
                   expiresAt?.toMillis?.() ??
-                  (typeof expiresAt?.seconds === 'number' ? invite.expiresAt.seconds * 1000 : null)
+                  (typeof (expiresAt as { seconds?: number })?.seconds === 'number'
+                    ? (expiresAt as { seconds: number }).seconds * 1000
+                    : null)
 
                 const acceptLink = `/app/invite?traineeId=${encodeURIComponent(invite.traineeId)}&code=${encodeURIComponent(invite.code)}`
 
