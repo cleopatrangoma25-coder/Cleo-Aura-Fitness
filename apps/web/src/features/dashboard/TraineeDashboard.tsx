@@ -12,6 +12,7 @@ import { useProgressMeasurements } from '../progress/useProgressMeasurements'
 import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
 import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
+import { useIncomingInvites } from '../team/useIncomingInvites'
 
 function Sparkline({
   points,
@@ -157,6 +158,7 @@ export function TraineeDashboard() {
     error: clientsError,
     summary,
   } = useProfessionalClients(user.uid, isProfessional)
+  const { data: incomingInvites } = useIncomingInvites(user.email)
   const { sessions, loading: sessionsLoading, error: sessionsError } = useSessions('upcoming')
   const {
     enrollments,
@@ -182,6 +184,8 @@ export function TraineeDashboard() {
   })
   const roleFocusedClients = roleFocusedClientsList.length
   const roleMissingAccess = summary.activeClients - roleFocusedClients
+  const pendingInviteCount =
+    incomingInvites?.filter(invite => invite.status === 'pending').length ?? 0
 
   const recentEntries = timeline.slice(0, 5)
   const loading = workoutsLoading || recoveryLoading
@@ -554,6 +558,27 @@ export function TraineeDashboard() {
 
       {isProfessional ? (
         <>
+          {pendingInviteCount > 0 ? (
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">
+                    You have {pendingInviteCount} pending invite
+                    {pendingInviteCount > 1 ? 's' : ''}.
+                  </p>
+                  <p className="text-xs text-emerald-800">Open invites and accept with one tap.</p>
+                </div>
+                <Link
+                  className="pill-button bg-white text-emerald-900"
+                  to="/app/invite"
+                  aria-label="Review pending invites"
+                >
+                  Review invites
+                </Link>
+              </div>
+            </Card>
+          ) : null}
+
           <div className="grid gap-3 sm:grid-cols-3">
             <article
               className={`rounded-xl border p-4 shadow-sm ${
