@@ -423,9 +423,14 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
             <p className="text-sm text-slate-600">Signed in as {user.email}</p>
             <p className="text-xs text-slate-500">Plan: {profile.plan.toUpperCase()}</p>
           </div>
-          <Button variant="outline" onClick={logout} type="button">
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {profile.role ? profile.role.toUpperCase() : 'ROLE'}
+            </span>
+            <Button variant="outline" onClick={logout} type="button">
+              Logout
+            </Button>
+          </div>
         </div>
         <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
           <Link className={navGhost} to="/app">

@@ -37,7 +37,7 @@
     --border: 330 28% 90%;
     --input: 330 28% 90%;
     --ring: 335 73% 56%;
-    --radius: 0.5rem;
+    --radius: 0.8rem;
   }
 
   .dark {
@@ -100,16 +100,16 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(120% 120% at 10% 20%, rgba(255, 219, 235, 0.6), transparent),
-    radial-gradient(90% 90% at 90% 10%, rgba(255, 209, 221, 0.45), transparent),
-    radial-gradient(80% 80% at 80% 80%, rgba(255, 231, 210, 0.5), transparent),
+  background: radial-gradient(120% 120% at 10% 20%, rgba(231, 111, 138, 0.15), transparent),
+    radial-gradient(90% 90% at 88% 10%, rgba(31, 191, 159, 0.12), transparent),
+    radial-gradient(80% 80% at 80% 80%, rgba(240, 140, 110, 0.14), transparent),
     hsl(var(--background));
 }
 
 #app {
-  max-width: 1200px;
+  max-width: 1220px;
   margin: 0 auto;
-  padding: 2.5rem clamp(1.25rem, 3vw, 2.5rem) 3rem;
+  padding: 2.75rem clamp(1.25rem, 3vw, 2.75rem) 3.25rem;
 }
 
 h1,
@@ -156,11 +156,11 @@ a:hover {
 
 .glass-card {
   backdrop-filter: blur(8px);
-  background: color-mix(in srgb, hsl(var(--card)) 80%, white 20%);
+  background: color-mix(in srgb, hsl(var(--card)) 78%, white 22%);
   box-shadow:
-    0 24px 60px -28px rgba(70, 20, 60, 0.25),
-    0 8px 24px -16px rgba(0, 0, 0, 0.18);
-  border: 1px solid hsl(var(--border) / 0.65);
+    0 26px 70px -32px rgba(31, 35, 54, 0.35),
+    0 12px 32px -20px rgba(231, 111, 138, 0.22);
+  border: 1px solid hsl(var(--border) / 0.6);
 }
 
 .btn-primary {

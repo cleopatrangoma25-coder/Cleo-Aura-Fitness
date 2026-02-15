@@ -269,7 +269,7 @@ export function TraineeDashboard() {
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
-              className="rounded-xl border bg-emerald-50 p-5 shadow-sm transition-colors hover:bg-emerald-100"
+              className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               to="/app/workouts/new"
             >
               <h3 className="text-lg font-semibold text-emerald-800">Log Workout</h3>
@@ -278,14 +278,14 @@ export function TraineeDashboard() {
               </p>
             </Link>
             <Link
-              className="rounded-xl border bg-violet-50 p-5 shadow-sm transition-colors hover:bg-violet-100"
+              className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               to="/app/recovery/new"
             >
               <h3 className="text-lg font-semibold text-violet-800">Log Recovery</h3>
               <p className="mt-1 text-sm text-violet-600">Rest days are part of your progress.</p>
             </Link>
             <Link
-              className="rounded-xl border bg-sky-50 p-5 shadow-sm transition-colors hover:bg-sky-100"
+              className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-sky-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               to="/app/check-in"
             >
               <h3 className="text-lg font-semibold text-sky-800">Daily Check-In</h3>
@@ -294,7 +294,7 @@ export function TraineeDashboard() {
               </p>
             </Link>
             <Link
-              className="rounded-xl border bg-amber-50 p-5 shadow-sm transition-colors hover:bg-amber-100"
+              className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-amber-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               to="/app/progress/new"
             >
               <h3 className="text-lg font-semibold text-amber-800">Log Progress</h3>
