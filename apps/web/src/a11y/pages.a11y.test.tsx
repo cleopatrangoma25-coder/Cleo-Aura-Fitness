@@ -8,6 +8,17 @@ import { ProfessionalSessions } from '../features/sessions/ProfessionalSessions'
 
 expect.extend(toHaveNoViolations)
 
+// Avoid real Firebase init in a11y tests
+vi.mock('../lib/firebase', () => ({
+  auth: {} as never,
+  db: {} as never,
+  hasFirebaseConfig: true,
+}))
+
+vi.mock('../features/team/useTeamAccess', () => ({
+  acceptInvite: vi.fn().mockResolvedValue(undefined),
+}))
+
 // Shared outlet context mock so pages think a user is signed in
 const { mockOutletContext } = vi.hoisted(() => ({
   mockOutletContext: vi.fn(() => ({
