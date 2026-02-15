@@ -17,7 +17,9 @@ const release = import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_GIT_SHA
 const tracesSampleRate =
   typeof import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE === 'string'
     ? Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE)
-    : 0.05
+    : environment === 'stage'
+      ? 0.2
+      : 0.05
 
 let sentryEnabled = false
 let Sentry: typeof import('@sentry/react') | null = null

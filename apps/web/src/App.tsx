@@ -229,6 +229,7 @@ function AuthScreen() {
                 Sync wearables
               </span>
             </div>
+            <div className="hero-figure" aria-hidden="true" />
           </div>
 
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
