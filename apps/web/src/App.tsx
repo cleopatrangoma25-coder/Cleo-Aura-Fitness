@@ -11,6 +11,7 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db, hasFirebaseConfig } from './lib/firebase'
 import { captureError, initMonitoring, setMonitoringUser } from './lib/monitoring'
+import { initErrorReporter } from './lib/errorReporter'
 import { Button } from '@repo/ui/Button'
 import { Card } from '@repo/ui/Card'
 import { LoadingCard } from './components/LoadingCard'
@@ -686,6 +687,9 @@ function MilestoneOneApp() {
     const unsubscribe = onAuthStateChanged(auth, user => {
       setAuthUser(user)
       setMonitoringUser(user ? { uid: user.uid, email: user.email } : null)
+      if (user) {
+        initErrorReporter(user.email)
+      }
       setAuthLoading(false)
     })
 

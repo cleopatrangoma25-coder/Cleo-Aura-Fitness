@@ -661,4 +661,36 @@ describe('Firestore Security Rules', () => {
       )
     })
   })
+
+  describe('Monitoring errorReports', () => {
+    it('allows authenticated user to write an error report', async () => {
+      const uid = 'reporter123'
+      await seedUser(uid, 'trainee')
+      const ctx = testEnv.authenticatedContext(uid)
+      const reportRef = doc(ctx.firestore(), 'errorReports', 'r1')
+
+      await assertSucceeds(
+        setDoc(reportRef, {
+          type: 'window.onerror',
+          message: 'Failed to load script',
+          stack: 'trace',
+          source: 'app.js',
+          lineno: 10,
+          colno: 5,
+          userEmail: 'user@example.com',
+        })
+      )
+    })
+
+    it('denies anonymous write to errorReports', async () => {
+      const anon = testEnv.unauthenticatedContext()
+      const reportRef = doc(anon.firestore(), 'errorReports', 'r2')
+      await assertFails(
+        setDoc(reportRef, {
+          type: 'window.onerror',
+          message: 'boom',
+        })
+      )
+    })
+  })
 })

@@ -72,6 +72,21 @@ service cloud.firestore {
         && modules.wearables == false;
     }
 
+    // lightweight client error reporting to Firestore for monitoring
+    match /errorReports/{reportId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.type is string
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && (!('stack' in request.resource.data) || request.resource.data.stack is string)
+        && (!('source' in request.resource.data) || request.resource.data.source is string)
+        && (!('userEmail' in request.resource.data) || request.resource.data.userEmail is string)
+        && (!('lineno' in request.resource.data) || request.resource.data.lineno is number)
+        && (!('colno' in request.resource.data) || request.resource.data.colno is number);
+      allow update, delete: if false;
+    }
+
     match /users/{userId} {
       allow read, create, update: if isOwner(userId);
       allow delete: if false;
