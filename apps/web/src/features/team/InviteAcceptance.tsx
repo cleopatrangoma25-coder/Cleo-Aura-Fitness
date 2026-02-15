@@ -5,6 +5,7 @@ import { Button } from '@repo/ui/Button'
 import { Card } from '@repo/ui/Card'
 import { db } from '../../lib/firebase'
 import { acceptInvite } from './useTeamAccess'
+import { z } from 'zod'
 
 type AppContext = {
   user: User
@@ -12,6 +13,16 @@ type AppContext = {
 }
 
 const PROFESSIONAL_ROLES = new Set(['trainer', 'nutritionist', 'counsellor'])
+
+const AcceptInviteInputSchema = z.object({
+  traineeId: z.string().min(3, 'Enter the trainee ID').max(120),
+  code: z
+    .string()
+    .trim()
+    .min(6, 'Invite code should be at least 6 characters')
+    .max(12, 'Invite code is too long')
+    .regex(/^[A-Z0-9]+$/, 'Use letters and numbers only'),
+})
 
 export function InviteAcceptance() {
   const { user, profile } = useOutletContext<AppContext>()
@@ -37,12 +48,21 @@ export function InviteAcceptance() {
       return
     }
 
+    const parsed = AcceptInviteInputSchema.safeParse({
+      traineeId: traineeId.trim(),
+      code: code.trim().toUpperCase(),
+    })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Invalid invite details.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       await acceptInvite({
         firestore: db,
-        traineeId: traineeId.trim(),
-        code: code.trim(),
+        traineeId: parsed.data.traineeId,
+        code: parsed.data.code,
         user: {
           uid: user.uid,
           email: user.email ?? '',

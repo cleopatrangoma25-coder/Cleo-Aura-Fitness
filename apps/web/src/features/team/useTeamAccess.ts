@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  DocumentReference,
   collection,
   deleteDoc,
   doc,
@@ -23,6 +24,7 @@ import type {
 import { defaultModulesForRole } from '@repo/shared'
 import { db } from '../../lib/firebase'
 import { queryKeys } from '../../lib/queryKeys'
+import { z } from 'zod'
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   workouts: 'Workouts',
@@ -241,7 +243,21 @@ export async function acceptInvite(params: {
   code: string
   user: { uid: string; email: string; displayName: string; role: ProfessionalRole }
 }): Promise<void> {
-  const { firestore, traineeId, code, user } = params
+  const schema = z.object({
+    traineeId: z.string().min(3),
+    code: z.string().trim().min(6).max(12).regex(/^[A-Z0-9]+$/),
+    user: z.object({
+      uid: z.string().min(1),
+      email: z.string().email(),
+      displayName: z.string().max(120),
+      role: z.enum(['trainer', 'nutritionist', 'counsellor']),
+    }),
+    firestore: z.custom<Firestore>(),
+  })
+
+  const parsed = schema.parse(params)
+  const { firestore, traineeId, code, user } = parsed
+
   // Ensure user profile has a role persisted so security rules recognize this professional
   await setDoc(
     doc(firestore, 'users', user.uid),

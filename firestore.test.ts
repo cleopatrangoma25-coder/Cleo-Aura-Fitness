@@ -624,5 +624,41 @@ describe('Firestore Security Rules', () => {
         })
       )
     })
+
+    it('denies professional accepting invite for different role', async () => {
+      const traineeId = 'traineeABC'
+      const counsellorId = 'counsellor123'
+      const inviteCode = 'INVITE02'
+
+      await seedUser(traineeId, 'trainee')
+      await seedUser(counsellorId, 'counsellor')
+
+      await testEnv.withSecurityRulesDisabled(async admin => {
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId), {
+          uid: traineeId,
+          ownerId: traineeId,
+        })
+        await setDoc(doc(admin.firestore(), 'trainees', traineeId, 'invites', inviteCode), {
+          code: inviteCode,
+          traineeId,
+          role: 'trainer', // mismatched expected role
+          createdBy: traineeId,
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        })
+      })
+
+      const proCtx = testEnv.authenticatedContext(counsellorId)
+      const inviteRef = doc(proCtx.firestore(), 'trainees', traineeId, 'invites', inviteCode)
+
+      await assertFails(
+        updateDoc(inviteRef, {
+          status: 'accepted',
+          acceptedByUid: counsellorId,
+          traineeId,
+          role: 'counsellor',
+        })
+      )
+    })
   })
 })
