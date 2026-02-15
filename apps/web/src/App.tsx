@@ -196,6 +196,41 @@ function AuthScreen() {
             </div>
           </div>
 
+          <div className="hero-illustration mt-6 grid gap-3 rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
+                ✦
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  One calm place for every health pro
+                </p>
+                <p className="text-xs text-slate-600">
+                  Trainers, nutritionists, and counsellors co-managing each trainee.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <span className="chip-soft bg-emerald-50 text-emerald-800">Training programs</span>
+              <span className="chip-soft bg-rose-50 text-rose-800">Nutrition rhythms</span>
+              <span className="chip-soft bg-cyan-50 text-cyan-800">Mood &amp; recovery</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="pill-button bg-white text-emerald-900">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Invite a trainer
+              </span>
+              <span className="pill-button bg-white text-rose-900">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                Share wellbeing
+              </span>
+              <span className="pill-button bg-white text-cyan-900">
+                <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                Sync wearables
+              </span>
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {ROLE_OPTIONS.map(option => (
               <button
