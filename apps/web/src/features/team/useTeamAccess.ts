@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  DocumentReference,
   collection,
   deleteDoc,
   doc,
@@ -130,8 +129,9 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
   }, [grants, team])
 
   const createInviteMutation = useMutation({
-    mutationFn: async (role: ProfessionalRole) => {
+    mutationFn: async ({ role, email }: { role: ProfessionalRole; email: string }) => {
       const code = randomInviteCode()
+      const targetEmail = email.trim().toLowerCase()
       await setDoc(doc(db, 'trainees', traineeId, 'invites', code), {
         code,
         traineeId,
@@ -143,10 +143,10 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
         acceptedAt: null,
         acceptedByUid: null,
         acceptedByEmail: null,
+        targetEmail,
         updatedAt: serverTimestamp(),
       })
-      const link = `${window.location.origin}/app/invite?traineeId=${encodeURIComponent(traineeId)}&code=${encodeURIComponent(code)}`
-      return { code, link }
+      return { code, traineeId, targetEmail }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey })
@@ -198,8 +198,11 @@ export function useTeamAccess(traineeId: string, currentUserId: string) {
     },
   })
 
-  async function createInvite(role: ProfessionalRole): Promise<{ code: string; link: string }> {
-    return createInviteMutation.mutateAsync(role)
+  async function createInvite(params: {
+    role: ProfessionalRole
+    email: string
+  }): Promise<{ code: string; traineeId: string; targetEmail: string }> {
+    return createInviteMutation.mutateAsync(params)
   }
 
   async function toggleModule(

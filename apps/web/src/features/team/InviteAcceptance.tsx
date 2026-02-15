@@ -1,11 +1,11 @@
-import { FormEvent, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import type { User } from 'firebase/auth'
 import { Button } from '@repo/ui/Button'
 import { Card } from '@repo/ui/Card'
 import { db } from '../../lib/firebase'
 import { acceptInvite } from './useTeamAccess'
-import { z } from 'zod'
+import { useIncomingInvites } from './useIncomingInvites'
 
 type AppContext = {
   user: User
@@ -14,32 +14,17 @@ type AppContext = {
 
 const PROFESSIONAL_ROLES = new Set(['trainer', 'nutritionist', 'counsellor'])
 
-const AcceptInviteInputSchema = z.object({
-  traineeId: z.string().min(3, 'Enter the trainee ID').max(120),
-  code: z
-    .string()
-    .trim()
-    .min(6, 'Invite code should be at least 6 characters')
-    .max(12, 'Invite code is too long')
-    .regex(/^[A-Z0-9]+$/, 'Use letters and numbers only'),
-})
-
 export function InviteAcceptance() {
   const { user, profile } = useOutletContext<AppContext>()
-  const location = useLocation()
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ traineeId: string } | null>(null)
 
-  const query = useMemo(() => new URLSearchParams(location.search), [location.search])
-  const [traineeId, setTraineeId] = useState(query.get('traineeId') ?? '')
-  const [code, setCode] = useState(query.get('code') ?? '')
-
   const isProfessional = profile.role ? PROFESSIONAL_ROLES.has(profile.role) : false
+  const { data: incomingInvites, isLoading } = useIncomingInvites(user.email)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleAccept(code: string, traineeId: string) {
     setError(null)
     setSuccess(null)
 
@@ -48,21 +33,12 @@ export function InviteAcceptance() {
       return
     }
 
-    const parsed = AcceptInviteInputSchema.safeParse({
-      traineeId: traineeId.trim(),
-      code: code.trim().toUpperCase(),
-    })
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid invite details.')
-      return
-    }
-
     setIsSubmitting(true)
     try {
       await acceptInvite({
         firestore: db,
-        traineeId: parsed.data.traineeId,
-        code: parsed.data.code,
+        traineeId,
+        code,
         user: {
           uid: user.uid,
           email: user.email ?? '',
@@ -70,7 +46,7 @@ export function InviteAcceptance() {
           role: profile.role as 'trainer' | 'nutritionist' | 'counsellor',
         },
       })
-      setSuccess({ traineeId: traineeId.trim() })
+      setSuccess({ traineeId })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Failed to accept invite.')
     } finally {
@@ -80,57 +56,53 @@ export function InviteAcceptance() {
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-semibold">Accept team invite</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Join a trainee&apos;s care team using their invite code.
-      </p>
+      <h2 className="text-xl font-semibold">Pending invites</h2>
+      <p className="mt-1 text-sm text-slate-600">Tap to accept invites sent to your email.</p>
 
-      <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
-        <label className="grid gap-1 text-sm">
-          Trainee ID
-          <input
-            className="rounded border px-3 py-2"
-            onChange={event => setTraineeId(event.target.value)}
-            required
-            value={traineeId}
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          Invite code
-          <input
-            className="rounded border px-3 py-2 font-mono uppercase"
-            onChange={event => setCode(event.target.value.toUpperCase())}
-            required
-            value={code}
-          />
-        </label>
+      {isLoading ? (
+        <p className="mt-3 text-sm text-slate-500">Loading invites...</p>
+      ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {success ? (
-          <p className="text-sm text-emerald-700">
-            Invite accepted. Open client view at{' '}
-            <Link className="underline" to={`/app/client/${success.traineeId}`}>
-              /app/client/{success.traineeId}
-            </Link>
-            .
-          </p>
+      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+      {success ? (
+        <p className="mt-3 text-sm text-emerald-700">
+          Invite accepted. Open client view at{' '}
+          <Link className="underline" to={`/app/client/${success.traineeId}`}>
+            /app/client/{success.traineeId}
+          </Link>
+          .
+        </p>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        {incomingInvites && incomingInvites.length === 0 ? (
+          <p className="text-sm text-slate-500">No pending invites right now.</p>
         ) : null}
+        {incomingInvites?.map(invite => (
+          <article className="rounded border p-3" key={invite.code}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Trainee: {invite.traineeId}</p>
+                <p className="text-xs text-slate-600">Role: {invite.role}</p>
+              </div>
+              <Button
+                size="sm"
+                disabled={isSubmitting}
+                onClick={() => handleAccept(invite.code, invite.traineeId)}
+                type="button"
+              >
+                {isSubmitting ? 'Accepting...' : 'Accept'}
+              </Button>
+            </div>
+          </article>
+        ))}
+      </div>
 
-        <div className="flex gap-2">
-          <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Accepting...' : 'Accept Invite'}
-          </Button>
-          {success ? (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/app/client/${success.traineeId}`)}
-              type="button"
-            >
-              Open client
-            </Button>
-          ) : null}
-        </div>
-      </form>
+      <div className="mt-4">
+        <Button variant="outline" onClick={() => navigate('/app')} type="button">
+          Back to home
+        </Button>
+      </div>
     </Card>
   )
 }
