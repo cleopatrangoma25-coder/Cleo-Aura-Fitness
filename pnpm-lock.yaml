@@ -166,6 +166,9 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(jsdom@25.0.1)
+      zod:
+        specifier: ^3.25.7
+        version: 3.25.76
 
   packages/config: {}
 
@@ -5582,4 +5585,3 @@ packages:
 
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-    dev: false

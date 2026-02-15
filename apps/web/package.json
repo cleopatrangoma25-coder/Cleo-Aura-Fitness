@@ -37,6 +37,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
+    "zod": "^3.25.7",
     "eslint": "^8.57.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^25.0.1",
