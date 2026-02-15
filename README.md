@@ -1,254 +1,238 @@
-# Cleo Aura Fitness: Feminine Focused Wellness App
+👑 Cleo-Aura-Fitness
 
-A production-ready monorepo for a feminine-focused fitness and wellbeing platform. Cleo Aura Fitness helps trainees track workouts, recovery, nutrition, wellbeing, progress, and wearable summaries while controlling professional access with role-based permissions.
+A holistic, trainer-connected fitness and wellness platform built for sustainable progress, confidence, and intelligent collaboration.
 
-## Stack Overview
+Cleo-Aura-Fitness enables trainees to track workouts, muscle development, recovery, nutrition habits, and wellbeing — while securely sharing selected data with trainers, nutritionists, and counsellors through a permission-based system.
 
-Think of building Cleo Aura Fitness like running a premium wellness studio:
+✨ Core Philosophy
 
-| Tool               | Role            | Studio Analogy                                  |
-| ------------------ | --------------- | ----------------------------------------------- |
-| **pnpm**           | Package Manager | Front desk organizing all studio resources      |
-| **Turborepo**      | Build System    | Operations manager coordinating every team      |
-| **React + Vite**   | Frontend        | Member-facing studio experience                 |
-| **TypeScript**     | Type Safety     | Operational standards that prevent mistakes     |
-| **Tailwind CSS**   | Styling         | Interior design system for consistent branding  |
-| **tRPC**           | API Layer       | Internal communication between teams            |
-| **TanStack Query** | Data Fetching   | Smart member records cache                      |
-| **Firebase**       | Backend + Auth  | Secure membership, access, and data management  |
-| **Vitest**         | Testing         | Quality checks before opening the studio floor  |
-| **Zod**            | Validation      | Intake screening for structured, safe data      |
+Trainee-owned data
 
-## Monorepo Structure
+Sustainable fitness (no burnout culture)
 
-```text
-.
-|-- apps/
-|   |-- web/                   # React frontend (member + professional app)
-|   |   `-- src/
-|   |       |-- App.tsx
-|   |       |-- features/
-|   |       |   |-- dashboard/
-|   |       |   |-- workouts/
-|   |       |   |-- recovery/
-|   |       |   |-- nutrition/
-|   |       |   |-- wellbeing/
-|   |       |   |-- progress/
-|   |       |   |-- wearables/
-|   |       |   |-- team/
-|   |       |   `-- billing/
-|   |       `-- lib/
-|   `-- functions/             # Backend functions / tRPC services
-|
-|-- packages/
-|   |-- shared/                # Shared schemas, enums, and types
-|   |-- ui/                    # Shared UI primitives/components
-|   |-- eslint-config/         # Shared lint config
-|   `-- typescript-config/     # Shared TS config
-|
-|-- docs/
-|   |-- project-definition/
-|   `-- ci-cd/
-|
-|-- firestore.rules            # Firestore security rules
-|-- firestore.indexes.json     # Firestore indexes/field overrides
-|-- firestore.test.ts          # Firestore rules tests
-|-- firebase.json              # Firebase project config
-|-- turbo.json                 # Turborepo pipeline config
-`-- package.json               # Root scripts
-```
+Habit-based nutrition (no calorie obsession)
 
-## Quick Start
+Mental wellbeing integrated into physical progress
 
-### Prerequisites
+Role-based professional collaboration
 
-- Node.js 20+
-- pnpm 8+
-- Firebase CLI (for emulator/deploy workflows)
+🏗 Architecture Overview
 
-### Installation
+Cleo-Aura-Fitness is a frontend-driven SaaS platform built using the Hytel monorepo stack.
 
-```bash
-git clone <your-repo-url>
-cd Cleo-Aura-Fitness-1
+Key Principles
+
+No custom backend (MVP)
+
+No Firebase Functions
+
+Firestore as the only database
+
+Authorization enforced via Firestore Security Rules
+
+Business logic primarily in React
+
+Strong typing via TypeScript + Zod
+
+🧱 Tech Stack
+Monorepo Tooling
+
+pnpm – package manager
+
+Turborepo – build orchestration
+
+Frontend
+
+React + Vite
+
+TypeScript (strict mode)
+
+Tailwind CSS
+
+shadcn/ui
+
+TanStack Query
+
+Validation & Typing
+
+Zod (shared schemas in packages/shared)
+
+Backend Services
+
+Firebase Authentication
+
+Cloud Firestore
+
+(Phase 2) Firebase Storage
+
+📁 Monorepo Structure
+├── apps/
+│ ├── web/ # Main React application
+│ └── functions/ # Reserved (unused in MVP)
+│
+├── packages/
+│ ├── ui/ # Shared UI components
+│ ├── shared/ # Shared Zod schemas & types
+│ ├── firebase/ # Firebase client initialization
+│ ├── eslint-config/
+│ └── typescript-config/
+│
+├── docs/
+│ └── technical/
+│
+├── turbo.json
+├── pnpm-workspace.yaml
+└── package.json
+
+🔐 User Roles
+Role Description
+Trainee Data owner, logs workouts and habits
+Trainer Views training & recovery data
+Nutritionist Views nutrition & energy trends
+Counsellor Views wellbeing & stress trends
+Admin Internal platform management
+
+All permissions are:
+
+Granular (module-level)
+
+Read-only for professionals
+
+Revocable instantly by trainee
+
+🚀 Getting Started
+1️⃣ Prerequisites
+
+Node.js 20+
+
+pnpm 8+
+
+Firebase CLI (optional for emulator)
+
+A Firebase project created
+
+2️⃣ Install Dependencies
 pnpm install
-```
 
-### Development
+3️⃣ Environment Variables
 
-```bash
-# Run all apps/packages in dev mode
+Create a .env file inside:
+
+apps/web/.env
+
+Add the following:
+
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
+
+⚠️ After editing .env, restart the dev server.
+
+4️⃣ Run Development Server
 pnpm dev
 
-# Run checks
-pnpm precheck
+App runs at:
 
-# Run tests
-pnpm test
+http://localhost:5173
 
-# Build all workspaces
-pnpm build
+🧪 Local Firebase Emulator (Recommended)
 
-# Lint and format
-pnpm lint
-pnpm format
-```
+To avoid touching production during development:
 
-## Key Features
+firebase emulators:start
 
-### Product Focus
+Then configure the app to connect to emulator when import.meta.env.DEV === true.
 
-- Feminine-focused wellness journey that combines physical training, recovery, nutrition, and emotional wellbeing.
-- Role-based experiences for:
-- `trainee`
-- `trainer`
-- `nutritionist`
-- `counsellor`
-- Privacy-first access model where trainees explicitly grant and revoke module access.
+🗄 Firestore Data Model (High-Level)
 
-### Trainee Experience
+Main collections:
 
-- Workout and recovery logging with muscle-group tagging.
-- Daily nutrition + wellbeing check-ins.
-- Progress measurement and analytics.
-- Wearables summary logging.
-- Team access control for professionals.
+users/{uid}
+trainees/{traineeId}
+trainees/{traineeId}/teamMembers/{memberUid}
+trainees/{traineeId}/grants/{memberUid}
+trainees/{traineeId}/workouts/{workoutId}
+trainees/{traineeId}/recovery/{recoveryId}
+trainees/{traineeId}/nutritionDays/{yyyyMMdd}
+trainees/{traineeId}/wellbeingDays/{yyyyMMdd}
+trainees/{traineeId}/progressMeasurements/{measurementId}
+trainees/{traineeId}/wearablesSummary/{yyyyMMdd}
 
-### Professional Experience
+📊 Core Features
 
-- Multi-client overview and role-specific insights.
-- Read-only module access controlled by trainee permissions.
-- Invite acceptance and per-client workspace views.
+Workout logging with muscle group tagging
 
-### Freemium + Pro
+Rest & recovery tracking
 
-- `free` and `pro` plan model on `users/{uid}`.
-- Pro-gated features include analytics, wearables, and team access management.
-- Dedicated Pro upgrade payment page (`/app/upgrade`) for upgrade flow.
+Habit-based nutrition logging
 
-## Scripts Reference
+Mood/stress/energy check-ins
 
-| Command              | Description                                   |
-| -------------------- | --------------------------------------------- |
-| `pnpm dev`           | Start development servers                     |
-| `pnpm build`         | Build all packages                            |
-| `pnpm test`          | Run all tests                                 |
-| `pnpm test:coverage` | Run tests with coverage report                |
-| `pnpm test:rules`    | Run Firestore rules tests via emulator        |
-| `pnpm lint`          | Lint all packages                             |
-| `pnpm lint:fix`      | Auto-fix lint issues                          |
-| `pnpm format`        | Format code with Prettier                     |
-| `pnpm format:check`  | Check code formatting                         |
-| `pnpm typecheck`     | Run TypeScript checks                         |
-| `pnpm precheck`      | Lint + typecheck + build + test               |
-| `pnpm deploy:stage`  | Build web app in stage mode and deploy stage  |
+Muscle growth & measurement tracking
 
----
+Professional dashboards (read-only)
 
-## Security Model
+Permission-based data sharing
 
-Firestore rules enforce:
+🔐 Security Model
 
-- Trainees can read/write their own records.
-- Professionals have no access by default.
-- Professionals only read modules explicitly granted by trainees.
-- Revocation is immediate via team/grant updates.
+Firebase Authentication for identity
 
-Run security rule tests with:
+Firestore Security Rules enforce:
 
-```bash
-pnpm test:rules
-```
+Ownership
 
----
+Role-based access
 
-## CI/CD Pipeline
+Module-level permissions
 
-The repository includes branch-based CI/CD with GitHub Actions.
+No professionals can write trainee data
 
-### Branch Strategy
+Instant access revocation supported
 
-| Branch  | Environment | Deployment                 |
-| ------- | ----------- | -------------------------- |
-| `dev`   | Development | Auto on push               |
-| `stage` | Staging     | Auto on push               |
-| `main`  | Production  | Manual (with confirmation) |
+💎 Freemium Model
 
-### Workflows
+MVP uses UI-based feature gating.
 
-| Workflow                | Trigger         | Purpose                              |
-| ----------------------- | --------------- | ------------------------------------ |
-| `ci.yml`                | PR & push       | Lint, typecheck, build, test         |
-| `deploy-dev.yml`        | Push to `dev`   | Deploy to development                |
-| `deploy-stage.yml`      | Push to `stage` | Deploy to staging                    |
-| `deploy-main.yml`       | Manual          | Deploy to production                 |
-| `release.yml`           | Push to `main`  | Automated versioning with Changesets |
-| `dependency-review.yml` | PR              | Dependency vulnerability checks      |
+Future versions may:
 
-See `docs/ci-cd/` for deployment details.
+Add billing integration
 
----
+Enforce plan-based access via Firestore rules
 
-## Monitoring and Hardening
+🧠 Development Philosophy
 
-- Frontend error boundary and global error capture are wired in `apps/web/src/lib/monitoring.ts`.
-- Optional remote error endpoint can be configured via:
-- `VITE_ERROR_MONITOR_ENDPOINT`
-- Firestore index overrides are defined in `firestore.indexes.json` to reduce unnecessary index cost on large text fields.
+Keep logic simple and predictable
 
----
+Avoid premature backend complexity
 
-## Environment Variables
+Prefer denormalized Firestore documents over relational thinking
 
-Use `.env.example` as the template.
+Validate on client with Zod
 
-Core frontend variables:
+Enforce ownership with Firestore rules
 
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_ERROR_MONITOR_ENDPOINT` (optional)
+Optimize only when needed
 
----
+🛠 Useful Commands
+Command Description
+pnpm dev Start development
+pnpm build Production build
+pnpm test Run tests
+pnpm lint Lint code
+pnpm precheck Run all checks
+📈 Roadmap Highlights
 
-## Testing
+Advanced analytics & rollups
 
-```bash
-# All tests
-pnpm test
+iOS companion app for Apple Watch (HealthKit)
 
-# Workspace tests
-pnpm --filter web test
-pnpm --filter @repo/shared test
+Secure messaging
 
-# Firestore rules
-pnpm test:rules
-```
+Predictive burnout detection
 
----
-
-## Version Requirements
-
-| Tool         | Minimum Version |
-| ------------ | --------------- |
-| Node.js      | 20.x            |
-| pnpm         | 8.x             |
-| Turbo        | 2.x             |
-| TypeScript   | 5.x             |
-| Vitest       | 2.x             |
-| ESLint       | 8.x             |
-| Prettier     | 3.x             |
-| Firebase CLI | 13.x            |
-
----
-
-## Contributing
-
-See `CONTRIBUTING.md` for branch workflow and coding standards.
-
----
-
-Built for women-centered fitness, wellbeing, and sustainable progress.
+Professional verification workflows!!

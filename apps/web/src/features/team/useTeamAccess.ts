@@ -253,6 +253,7 @@ export async function acceptInvite(params: {
     status?: string
     role?: ProfessionalRole
     expiresAt?: Timestamp
+    traineeId?: string
   }
 
   if (invite.status !== 'pending') {
@@ -282,6 +283,8 @@ export async function acceptInvite(params: {
     acceptedAt: serverTimestamp(),
     acceptedByUid: user.uid,
     acceptedByEmail: user.email,
+    traineeId,
+    role: invite.role ?? user.role,
     updatedAt: serverTimestamp(),
   })
 
