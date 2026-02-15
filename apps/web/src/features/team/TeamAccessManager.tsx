@@ -20,7 +20,8 @@ const ROLE_OPTIONS: Array<{ value: ProfessionalRole; label: string }> = [
 export function TeamAccessManager() {
   const { user, profile } = useOutletContext<AppContext>()
   const [inviteRole, setInviteRole] = useState<ProfessionalRole>('trainer')
-  const [inviteOutput, setInviteOutput] = useState<{ code: string; link: string } | null>(null)
+  const [inviteOutput, setInviteOutput] = useState<{ code: string; link?: string } | null>(null)
+  const [inviteEmail, setInviteEmail] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const {
@@ -49,8 +50,8 @@ export function TeamAccessManager() {
     setActionError(null)
     setIsCreatingInvite(true)
     try {
-      const invite = await createInvite(inviteRole)
-      setInviteOutput(invite)
+      const invite = await createInvite({ role: inviteRole, email: inviteEmail })
+      setInviteOutput({ code: invite.code })
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : 'Failed to create invite.')
     } finally {
@@ -110,6 +111,17 @@ export function TeamAccessManager() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            Professional email
+            <input
+              className="rounded border px-3 py-2"
+              onChange={event => setInviteEmail(event.target.value)}
+              placeholder="coach@example.com"
+              required
+              type="email"
+              value={inviteEmail}
+            />
           </label>
           <Button disabled={isCreatingInvite} onClick={handleCreateInvite} type="button">
             {isCreatingInvite ? 'Creating...' : 'Generate Invite'}
