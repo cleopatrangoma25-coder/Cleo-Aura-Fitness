@@ -134,28 +134,57 @@ export function TeamAccessManager() {
           ) : (
             invites
               .filter(invite => invite.status === 'pending')
-              .map(invite => (
-                <article className="rounded border p-3 text-sm" key={invite.code}>
-                  <p className="font-mono">{invite.code}</p>
-                  <p className="text-slate-600">Role: {invite.role}</p>
-                  {(() => {
-                    const expiresAt =
-                      typeof invite.expiresAt === 'object' && invite.expiresAt
-                        ? (invite.expiresAt as { toMillis?: () => number; seconds?: number })
-                        : null
-                    const expires =
-                      expiresAt?.toMillis?.() ??
-                      (typeof expiresAt?.seconds === 'number'
-                        ? expiresAt.seconds * 1000
-                        : undefined)
-                    return expires ? (
-                      <p className="text-xs text-slate-500">
-                        Expires: {new Date(expires).toLocaleDateString()}
-                      </p>
-                    ) : null
-                  })()}
-                </article>
-              ))
+              .map(invite => {
+                const expiresAt =
+                  typeof invite.expiresAt === 'object' && invite.expiresAt
+                    ? (invite.expiresAt as { toMillis?: () => number; seconds?: number })
+                    : null
+                const expires =
+                  expiresAt?.toMillis?.() ??
+                  (typeof expiresAt?.seconds === 'number' ? invite.expiresAt.seconds * 1000 : null)
+
+                const acceptLink = `/app/invite?traineeId=${encodeURIComponent(invite.traineeId)}&code=${encodeURIComponent(invite.code)}`
+
+                return (
+                  <article className="rounded border p-3 text-sm" key={invite.code}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-mono text-base font-semibold">{invite.code}</p>
+                        <p className="text-slate-600">Role: {invite.role}</p>
+                        {expires ? (
+                          <p className="text-xs text-slate-500">
+                            Expires: {new Date(expires).toLocaleDateString()}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          className="pill-button bg-white text-emerald-900"
+                          href={acceptLink}
+                          aria-label={`Open invite ${invite.code}`}
+                        >
+                          Accept
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(acceptLink)
+                              setInviteOutput({ code: invite.code, link: acceptLink })
+                            } catch {
+                              setInviteOutput({ code: invite.code, link: acceptLink })
+                            }
+                          }}
+                          type="button"
+                        >
+                          Copy Link
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                )
+              })
           )}
         </div>
       </Card>
