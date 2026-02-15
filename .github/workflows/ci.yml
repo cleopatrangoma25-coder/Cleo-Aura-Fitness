@@ -45,3 +45,6 @@ jobs:
           FIRESTORE_EMULATOR_PORT: 8085
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8085
         run: pnpm dlx firebase-tools@13.15.0 emulators:exec --only firestore --project cleo-aura-fitness-test "pnpm exec vitest run firestore.test.ts --reporter=basic"
+
+      - name: Security audit (production deps)
+        run: pnpm audit:ci
