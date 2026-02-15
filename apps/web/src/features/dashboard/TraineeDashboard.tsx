@@ -256,13 +256,28 @@ export function TraineeDashboard() {
 
   return (
     <div className="space-y-5">
-      <Card className="p-5">
-        <h2 className="text-xl font-semibold">
-          Welcome back{profile.displayName ? `, ${profile.displayName}` : ''}
-        </h2>
-        {profile.role ? (
-          <p className="mt-1 text-sm text-slate-600">{ROLE_COPY[profile.role]}</p>
-        ) : null}
+      <Card className="relative overflow-hidden bg-gradient-to-br from-rose-50 via-white to-emerald-50 p-5">
+        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-rose-200/40 blur-3xl" />
+        <div className="relative">
+          <h2 className="text-xl font-semibold">
+            Welcome back{profile.displayName ? `, ${profile.displayName}` : ''}
+          </h2>
+          {profile.role ? (
+            <p className="mt-1 text-sm text-slate-600">{ROLE_COPY[profile.role]}</p>
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-white/80 px-3 py-1 text-emerald-800 shadow-sm">
+              Holistic health team
+            </span>
+            <span className="rounded-full bg-white/80 px-3 py-1 text-rose-800 shadow-sm">
+              Sparklines & KPIs
+            </span>
+            <span className="rounded-full bg-white/80 px-3 py-1 text-slate-800 shadow-sm">
+              Calm UI
+            </span>
+          </div>
+        </div>
       </Card>
 
       {isTrainee ? (

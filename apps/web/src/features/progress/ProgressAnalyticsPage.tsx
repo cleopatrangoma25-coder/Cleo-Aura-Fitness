@@ -600,35 +600,81 @@ export function ProgressAnalyticsPage() {
         ) : null}
 
         {!loading && !error && weeklyRollups.length > 0 ? (
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="border px-2 py-1 text-left">Week</th>
-                  <th className="border px-2 py-1 text-right">Workouts</th>
-                  <th className="border px-2 py-1 text-right">Intense</th>
-                  <th className="border px-2 py-1 text-right">Recovery</th>
-                  <th className="border px-2 py-1 text-right">Progress Entries</th>
-                  <th className="border px-2 py-1 text-right">Avg Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {weeklyRollups.map(rollup => (
-                  <tr key={rollup.weekKey}>
-                    <td className="border px-2 py-1">{rollup.weekKey}</td>
-                    <td className="border px-2 py-1 text-right">{rollup.workouts}</td>
-                    <td className="border px-2 py-1 text-right">{rollup.intenseWorkouts}</td>
-                    <td className="border px-2 py-1 text-right">{rollup.recovery}</td>
-                    <td className="border px-2 py-1 text-right">{rollup.progressEntries}</td>
-                    <td className="border px-2 py-1 text-right">
-                      {rollup.avgWorkoutDuration === null
-                        ? '-'
-                        : `${rollup.avgWorkoutDuration} min`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {weeklyRollups.map(rollup => {
+              const maxVal = Math.max(
+                rollup.workouts,
+                rollup.recovery,
+                rollup.progressEntries,
+                rollup.intenseWorkouts,
+                1
+              )
+              const durationLabel =
+                rollup.avgWorkoutDuration === null ? '—' : `${rollup.avgWorkoutDuration} min`
+              return (
+                <article
+                  className="rounded-2xl border bg-gradient-to-br from-white via-slate-50 to-white p-4 shadow-sm"
+                  key={rollup.weekKey}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-800">{rollup.weekKey}</p>
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                      Duration {durationLabel}
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs text-slate-600">
+                    <div>
+                      <div className="flex justify-between">
+                        <p>Workouts</p>
+                        <p className="font-semibold text-slate-900">{rollup.workouts}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-emerald-500"
+                          style={{ width: `${(rollup.workouts / maxVal) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between">
+                        <p>Intense</p>
+                        <p className="font-semibold text-slate-900">{rollup.intenseWorkouts}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-amber-500"
+                          style={{ width: `${(rollup.intenseWorkouts / maxVal) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between">
+                        <p>Recovery</p>
+                        <p className="font-semibold text-slate-900">{rollup.recovery}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-cyan-500"
+                          style={{ width: `${(rollup.recovery / maxVal) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between">
+                        <p>Progress entries</p>
+                        <p className="font-semibold text-slate-900">{rollup.progressEntries}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-rose-500"
+                          style={{ width: `${(rollup.progressEntries / maxVal) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         ) : null}
       </Card>
@@ -639,33 +685,40 @@ export function ProgressAnalyticsPage() {
           <p className="mt-3 text-sm text-slate-500">No measurements yet.</p>
         ) : null}
         {!loading && !error && sortedProgress.length > 0 ? (
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="border px-2 py-1 text-left">Date</th>
-                  <th className="border px-2 py-1 text-right">Weight</th>
-                  <th className="border px-2 py-1 text-right">Body Fat</th>
-                  <th className="border px-2 py-1 text-right">Waist</th>
-                  <th className="border px-2 py-1 text-right">Squat</th>
-                  <th className="border px-2 py-1 text-right">Bench</th>
-                  <th className="border px-2 py-1 text-right">Deadlift</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedProgress.map(entry => (
-                  <tr key={entry.id}>
-                    <td className="border px-2 py-1">{entry.date}</td>
-                    <td className="border px-2 py-1 text-right">{entry.bodyWeightKg ?? '-'}</td>
-                    <td className="border px-2 py-1 text-right">{entry.bodyFatPct ?? '-'}</td>
-                    <td className="border px-2 py-1 text-right">{entry.waistCm ?? '-'}</td>
-                    <td className="border px-2 py-1 text-right">{entry.squat1RmKg ?? '-'}</td>
-                    <td className="border px-2 py-1 text-right">{entry.bench1RmKg ?? '-'}</td>
-                    <td className="border px-2 py-1 text-right">{entry.deadlift1RmKg ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {sortedProgress.map(entry => (
+              <article
+                key={entry.id}
+                className="rounded-2xl border bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-900">{entry.date}</p>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-600">
+                    Bodyweight: {entry.bodyWeightKg ?? '—'} kg
+                  </span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                  <div className="rounded border border-emerald-100 bg-emerald-50/60 p-2">
+                    <p className="font-semibold text-emerald-800">{entry.squat1RmKg ?? '—'} kg</p>
+                    <p>Squat 1RM</p>
+                  </div>
+                  <div className="rounded border border-violet-100 bg-violet-50/60 p-2">
+                    <p className="font-semibold text-violet-800">{entry.bench1RmKg ?? '—'} kg</p>
+                    <p>Bench 1RM</p>
+                  </div>
+                  <div className="rounded border border-amber-100 bg-amber-50/60 p-2">
+                    <p className="font-semibold text-amber-800">{entry.deadlift1RmKg ?? '—'} kg</p>
+                    <p>Deadlift 1RM</p>
+                  </div>
+                  <div className="rounded border border-cyan-100 bg-cyan-50/60 p-2">
+                    <p className="font-semibold text-cyan-800">
+                      {entry.bodyFatPct ? `${entry.bodyFatPct}%` : '—'}
+                    </p>
+                    <p>Body Fat</p>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         ) : null}
       </Card>

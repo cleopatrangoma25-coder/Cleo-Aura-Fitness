@@ -110,6 +110,7 @@ export function DailyCheckIn() {
         upsertWellbeingDay(wellbeingInput.data),
       ])
       setMessage('Daily check-in saved.')
+      navigate('/app')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Failed to save check-in.')
     } finally {

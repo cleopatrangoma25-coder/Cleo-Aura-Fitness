@@ -176,6 +176,26 @@ function AuthScreen() {
             existing users can login right away.
           </p>
 
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -right-6 -top-8 h-16 w-16 rounded-full bg-emerald-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-emerald-800">Holistic Coach</p>
+              <p className="text-[11px] text-slate-600">Training · Recovery · Nutrition</p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-rose-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -left-6 -top-10 h-16 w-16 rounded-full bg-rose-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-rose-800">Human-first</p>
+              <p className="text-[11px] text-slate-600">
+                Invite trainers, counsellors, nutritionists
+              </p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-cyan-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -right-8 -bottom-10 h-16 w-16 rounded-full bg-cyan-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-cyan-800">Calm workspace</p>
+              <p className="text-[11px] text-slate-600">Structured cards &amp; sparklines</p>
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {ROLE_OPTIONS.map(option => (
               <button

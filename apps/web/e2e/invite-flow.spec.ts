@@ -10,6 +10,11 @@ const TRAINEE_INVITE = {
 }
 
 test.describe('Invite acceptance flow', () => {
+  const trainerEmail = process.env.E2E_TRAINER_EMAIL
+  const trainerPassword = process.env.E2E_TRAINER_PASSWORD
+
+  test.skip(!trainerEmail || !trainerPassword, 'Set E2E_TRAINER_EMAIL/PASSWORD to run this flow')
+
   test('trainer accepts trainee invite and passes axe', async ({ page, context }) => {
     // Visit invite acceptance page
     await page.goto('/invite', { waitUntil: 'networkidle' })
