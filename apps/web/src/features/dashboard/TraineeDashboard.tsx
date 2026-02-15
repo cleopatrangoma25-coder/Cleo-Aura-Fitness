@@ -1,4 +1,4 @@
-import { Link, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { MUSCLE_GROUP_LABELS } from '@repo/shared'
 import { Card } from '@repo/ui/Card'
 import { Button } from '@repo/ui/Button'
@@ -13,6 +13,7 @@ import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
 import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
 import { useIncomingInvites } from '../team/useIncomingInvites'
+import { useState } from 'react'
 import { acceptInvite } from '../team/useTeamAccess'
 import { db } from '../../lib/firebase'
 
@@ -135,6 +136,7 @@ const PROFESSIONAL_ROLE_THEME: Record<
 
 export function TraineeDashboard() {
   const { user, profile } = useOutletContext<AppContext>()
+  const navigate = useNavigate()
   const isTrainee = profile.role === 'trainee'
   const hasProPlan = profile.plan === 'pro'
   const isProfessional =
