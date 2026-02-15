@@ -5,6 +5,9 @@ import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { QueryProvider } from './providers/QueryProvider'
 import { ServiceProvider } from './providers/ServiceProvider'
 import './style.css'
+import { initPerformanceMonitoring } from './lib/performance'
+
+initPerformanceMonitoring()
 
 createRoot(document.getElementById('app')!).render(
   <StrictMode>

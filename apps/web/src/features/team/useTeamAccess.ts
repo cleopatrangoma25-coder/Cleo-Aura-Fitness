@@ -285,6 +285,7 @@ export async function acceptInvite(params: {
     role?: ProfessionalRole
     expiresAt?: Timestamp
     traineeId?: string
+    targetEmail?: string
   }
 
   if (invite.status !== 'pending') {
@@ -293,6 +294,11 @@ export async function acceptInvite(params: {
 
   if (!invite.role || invite.role !== user.role) {
     throw new Error('Invite role does not match your account role.')
+  }
+
+  const inviteTargetEmail = invite.targetEmail?.toLowerCase?.()
+  if (inviteTargetEmail && inviteTargetEmail !== user.email.toLowerCase()) {
+    throw new Error('Invite was sent to a different email.')
   }
 
   const expiresAt = invite.expiresAt?.toMillis?.()
