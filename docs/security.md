@@ -1,37 +1,9 @@
-## Threat Model (v0.1)
+# Security & Access Policy
 
-**Context**: Cleo Aura Fitness (stage) on Firebase (Auth + Firestore + Hosting). Roles: trainee (owner), trainer/nutritionist/counsellor (read-only via grants). Wearables data and wellbeing notes are PII-adjacent.
-
-### Assets & Data
-
-- User profiles, plan, roles (`users`)
-- Trainee data: workouts, recovery, nutrition, wellbeing, progress, wearables
-- Grants/invites for professional access
-
-### Trust Boundaries
-
-- Client ↔ Firebase Auth/Firestore (rules enforced)
-- Invite links shared off-platform
-
-### Key Risks
-
-1. **Unauthorized data access** via mis-scoped Firestore rules.
-2. **Invite leakage** (replay of unused invite codes).
-3. **PII exposure** in logs/errors.
-4. **Dependency vulnerabilities** in client bundle.
-
-### Mitigations in place
-
-- Firestore rules enforce auth and role-based module grants (least privilege).
-- Client-side Zod validation for writes.
-- Production/stage separation via Firebase projects.
-- Global error capture (frontend hook) to avoid console spew.
-
-### Gaps / Actions
-
-- Require 2FA on repo/org.
-- Keep Dependabot on (weekly root + web).
-- Automated security scan: OWASP ZAP baseline weekly vs stage; npm audit in CI.
-- Expire invite codes after acceptance; store createdAt + TTL. ✔
-- Document secrets handling via env (no secrets in repo). ✔
-- Optional: enable Sentry DSN env for frontend error capture; add Firebase budget alert + Crashlytics/Perf Monitoring alerts. ✔
+- **2FA required** for all collaborators on GitHub and Firebase console.
+- **Least privilege:** roles limited to project-level Editor is discouraged; use Firebase-specific roles (Firestore Viewer/Editor, Monitoring Editor).
+- **Secrets:** Only in GitHub Actions secrets or Firebase environment config; never in repo.
+- **Dependency hygiene:** Dependabot + GitHub dependency review (enabled), `pnpm audit:ci` in CI.
+- **App surface:** Firestore rules enforce role/email-checked invites; session creation restricted to professionals.
+- **DAST:** Weekly ZAP scan workflow targets stage URL (see `.github/workflows/zap-scan.yml`).
+- **Incident response:** Alert channel `alerts@cleo-aura-fitness.com` (see `docs/ops/alerts.md`); rotate if ownership changes.
