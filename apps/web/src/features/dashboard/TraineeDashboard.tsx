@@ -13,6 +13,8 @@ import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
 import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
 import { useIncomingInvites } from '../team/useIncomingInvites'
+import { acceptInvite } from '../team/useTeamAccess'
+import { db } from '../../lib/firebase'
 
 function Sparkline({
   points,
@@ -158,7 +160,13 @@ export function TraineeDashboard() {
     error: clientsError,
     summary,
   } = useProfessionalClients(user.uid, isProfessional)
-  const { data: incomingInvites } = useIncomingInvites(user.email)
+  const {
+    data: incomingInvites,
+    isLoading: invitesLoading,
+    refetch: refetchInvites,
+  } = useIncomingInvites(user.email)
+  const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null)
+  const [acceptError, setAcceptError] = useState<string | null>(null)
   const { sessions, loading: sessionsLoading, error: sessionsError } = useSessions('upcoming')
   const {
     enrollments,
@@ -186,6 +194,31 @@ export function TraineeDashboard() {
   const roleMissingAccess = summary.activeClients - roleFocusedClients
   const pendingInviteCount =
     incomingInvites?.filter(invite => invite.status === 'pending').length ?? 0
+
+  async function handleAcceptInvite(code: string, traineeId: string) {
+    if (!isProfessional) return
+    setAcceptError(null)
+    setAcceptingInvite(code)
+    try {
+      await acceptInvite({
+        firestore: db,
+        traineeId,
+        code,
+        user: {
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: profile.displayName ?? user.displayName ?? '',
+          role: profile.role as Exclude<UserRole, 'trainee'>,
+        },
+      })
+      await refetchInvites()
+      navigate(`/app/client/${traineeId}`)
+    } catch (caught) {
+      setAcceptError(caught instanceof Error ? caught.message : 'Failed to accept invite.')
+    } finally {
+      setAcceptingInvite(null)
+    }
+  }
 
   const recentEntries = timeline.slice(0, 5)
   const loading = workoutsLoading || recoveryLoading
@@ -568,13 +601,35 @@ export function TraineeDashboard() {
                   </p>
                   <p className="text-xs text-emerald-800">Open invites and accept with one tap.</p>
                 </div>
-                <Link
-                  className="pill-button bg-white text-emerald-900"
-                  to="/app/invite"
-                  aria-label="Review pending invites"
-                >
+                <Link className="pill-button bg-white text-emerald-900" to="/app/invite">
                   Review invites
                 </Link>
+              </div>
+              {invitesLoading ? (
+                <p className="mt-3 text-sm text-slate-500">Loading invites...</p>
+              ) : null}
+              {acceptError ? <p className="mt-3 text-sm text-red-600">{acceptError}</p> : null}
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {incomingInvites
+                  ?.filter(invite => invite.status === 'pending')
+                  .map(invite => (
+                    <article className="rounded border bg-white p-3 text-sm" key={invite.code}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-900">{invite.traineeId}</p>
+                          <p className="text-xs text-slate-600">Role: {invite.role}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={acceptingInvite === invite.code}
+                          onClick={() => handleAcceptInvite(invite.code, invite.traineeId)}
+                          type="button"
+                        >
+                          {acceptingInvite === invite.code ? 'Accepting...' : 'Accept'}
+                        </Button>
+                      </div>
+                    </article>
+                  ))}
               </div>
             </Card>
           ) : null}
