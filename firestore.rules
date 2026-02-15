@@ -1,0 +1,213 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isTraineeOwner(traineeId) {
+      return isSignedIn() && request.auth.uid == traineeId;
+    }
+
+    function currentUserRole() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          : null;
+    }
+
+    function isTraineeUser() {
+      return currentUserRole() == 'trainee';
+    }
+
+    function isProfessionalUser() {
+      return currentUserRole() in ['trainer', 'nutritionist', 'counsellor'];
+    }
+
+    function sessionExists(sessionId) {
+      return sessionId is string
+        && exists(/databases/$(database)/documents/sessions/$(sessionId));
+    }
+
+    function sessionCreatedBy(sessionId, uid) {
+      return sessionExists(sessionId)
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdByUid == uid;
+    }
+
+    function hasActiveGrant(traineeId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/trainees/$(traineeId)/grants/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/trainees/$(traineeId)/teamMembers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/grants/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/teamMembers/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function hasModuleGrant(traineeId, module) {
+      return hasActiveGrant(traineeId)
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/grants/$(request.auth.uid)).data.modules[module] == true;
+    }
+
+    function inviteAcceptedForSelf(traineeId, inviteCode) {
+      return inviteCode is string
+        && exists(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode))
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.status == 'accepted'
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.acceptedByUid == request.auth.uid
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.traineeId == traineeId
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.role == currentUserRole()
+        && get(/databases/$(database)/documents/trainees/$(traineeId)/invites/$(inviteCode)).data.expiresAt > request.time;
+    }
+
+    function allModulesDisabled(modules) {
+      return modules.workouts == false
+        && modules.recovery == false
+        && modules.nutrition == false
+        && modules.wellbeing == false
+        && modules.progress == false
+        && modules.wearables == false;
+    }
+
+    // lightweight client error reporting to Firestore for monitoring
+    match /errorReports/{reportId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.type is string
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && (!('stack' in request.resource.data) || request.resource.data.stack is string)
+        && (!('source' in request.resource.data) || request.resource.data.source is string)
+        && (!('userEmail' in request.resource.data) || request.resource.data.userEmail is string)
+        && (!('lineno' in request.resource.data) || request.resource.data.lineno is number)
+        && (!('colno' in request.resource.data) || request.resource.data.colno is number);
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    match /trainees/{traineeId} {
+      allow read: if isTraineeOwner(traineeId) || hasActiveGrant(traineeId);
+      allow create, update: if isTraineeOwner(traineeId) && isTraineeUser();
+      allow delete: if false;
+
+      match /invites/{inviteCode} {
+        allow read: if isTraineeOwner(traineeId) || (isSignedIn() && resource.data.status == 'pending' && resource.data.expiresAt > request.time);
+        allow create, delete: if isTraineeOwner(traineeId)
+          && request.resource.data.expiresAt is timestamp
+          && request.resource.data.expiresAt > request.time;
+        allow update: if isTraineeOwner(traineeId)
+          || (
+            isProfessionalUser()
+            && resource.data.status == 'pending'
+            && resource.data.expiresAt > request.time
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.acceptedByUid == request.auth.uid
+            && request.resource.data.traineeId == traineeId
+            && request.resource.data.role == currentUserRole()
+          );
+      }
+
+      match /teamMembers/{memberUid} {
+        allow read: if isTraineeOwner(traineeId) || isOwner(memberUid);
+        allow create: if isTraineeOwner(traineeId)
+          || (
+            isProfessionalUser()
+            && isOwner(memberUid)
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.role == currentUserRole()
+            && inviteAcceptedForSelf(traineeId, request.resource.data.inviteCode)
+          );
+        allow update, delete: if isTraineeOwner(traineeId);
+      }
+
+      match /grants/{memberUid} {
+        allow read: if isTraineeOwner(traineeId) || isOwner(memberUid);
+        allow create: if isTraineeOwner(traineeId)
+          || (
+            isProfessionalUser()
+            && isOwner(memberUid)
+            && request.resource.data.memberUid == request.auth.uid
+            && request.resource.data.role == currentUserRole()
+            && request.resource.data.active == true
+            && allModulesDisabled(request.resource.data.modules)
+            && inviteAcceptedForSelf(traineeId, request.resource.data.inviteCode)
+          );
+        allow update, delete: if isTraineeOwner(traineeId);
+      }
+
+      match /workouts/{workoutId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'workouts');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /recovery/{recoveryId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'recovery');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /nutritionDays/{dayId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'nutrition');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /wellbeingDays/{dayId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'wellbeing');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /progressMeasurements/{measurementId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'progress');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /wearablesSummary/{dayId} {
+        allow read: if isTraineeOwner(traineeId) || hasModuleGrant(traineeId, 'wearables');
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+
+      match /{subcollection}/{document=**} {
+        allow read: if isTraineeOwner(traineeId);
+        allow write: if isTraineeOwner(traineeId) && isTraineeUser();
+      }
+    }
+
+    // Public sessions (created by professionals)
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isProfessionalUser()
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && request.resource.data.audience in ['trainee', 'trainer', 'nutritionist', 'counsellor', 'all']
+        && request.resource.data.scheduledAt is timestamp
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.createdByRole in ['trainer', 'nutritionist', 'counsellor']
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault is bool);
+      allow update, delete: if false;
+    }
+
+    // Session enrollments (created by trainees)
+    match /sessionEnrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (
+        resource.data.traineeId == request.auth.uid
+          || sessionCreatedBy(resource.data.sessionId, request.auth.uid)
+      );
+      allow create: if isTraineeUser()
+        && request.resource.data.sessionId is string
+        && request.resource.data.traineeId == request.auth.uid
+        && sessionExists(request.resource.data.sessionId);
+      allow delete: if isSignedIn() && resource.data.traineeId == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

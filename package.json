@@ -10,6 +10,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
+    "test:rules": "firebase emulators:exec --only firestore \"pnpm exec vitest run firestore.test.ts\"",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "sync:lint": "syncpack lint",
@@ -19,16 +20,25 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
-    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test"
+    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "deploy:stage": "pnpm --filter web build:stage && firebase deploy --only hosting -P stage",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "audit:ci": "pnpm audit --prod --audit-level=high"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@changesets/cli": "^2.27.1",
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.58.2",
+    "axe-core": "^4.11.1",
     "eslint": "^8.57.0",
+    "firebase": "^11.1.0",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "syncpack": "^13.0.0",
-    "turbo": "^2.7.5"
+    "turbo": "^2.7.5",
+    "vitest": "^2.1.8"
   },
   "packageManager": "pnpm@8.15.6",
   "engines": {

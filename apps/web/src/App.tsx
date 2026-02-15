@@ -1,247 +1,983 @@
-/**
- * =============================================================================
- * WELCOME TO THE HYTEL WAY: MONOREPO STACK
- * =============================================================================
- *
- * This file demonstrates the key concepts of our tech stack using friendly
- * analogies. Think of building a web app like putting on a theater production!
- *
- * THE STACK EXPLAINED (Theater Analogy):
- *
- * PNPM (Package Manager)
- *    -> "The super-organized prop master"
- *    -> Manages all the tools/packages we need, storing them efficiently
- *    -> Unlike npm, it doesn't duplicate packages - saves space!
- *
- * TURBOREPO (Monorepo Build System)
- *    -> "The stage manager who coordinates everything"
- *    -> Runs tasks (build, test, dev) across multiple packages smartly
- *    -> Caches results so repeated tasks are lightning fast!
- *
- * REACT + VITE (Frontend Framework + Build Tool)
- *    -> "The stage and lighting system"
- *    -> React: Builds the interactive UI (the actors on stage)
- *    -> Vite: Super-fast dev server (instant lighting changes!)
- *
- * TAILWIND CSS + SHADCN UI (Styling)
- *    -> "The costume designer"
- *    -> Tailwind: Utility classes for quick styling (fabric swatches)
- *    -> Shadcn UI: Pre-made, beautiful component patterns (costume templates)
- *
- * @repo/ui (Shared Component Package)
- *    -> "The shared costume closet"
- *    -> Components here (Header, Button, Card) can be used by ANY app!
- *    -> Located in: packages/ui/
- *
- * @repo/shared (Shared Types & Schemas)
- *    -> "The spellbook of shared rules"
- *    -> Zod schemas define what data looks like (validation spells!)
- *    -> Located in: packages/shared/
- *
- * tRPC + TanStack Query (API Layer)
- *    -> "The messenger system between actors"
- *    -> tRPC: Type-safe communication with backend (no lost messages!)
- *    -> TanStack Query: Smart caching of server data (remembers the script!)
- *
- * =============================================================================
- */
-
-import { useState } from 'react'
-import './style.css'
-
-// Importing from @repo/ui - the "shared component closet"
-// These components live in packages/ui/ and can be used by any app!
-import { Header } from '@repo/ui/Header'
-import { Button } from '@repo/ui/Button'
+import { FormEvent, Suspense, useEffect, useMemo, useState, lazy } from 'react'
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@repo/ui/Card'
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  type User,
+} from 'firebase/auth'
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { auth, db, hasFirebaseConfig } from './lib/firebase'
+import { captureError, initMonitoring, setMonitoringUser } from './lib/monitoring'
+import { initErrorReporter } from './lib/errorReporter'
+import { Button } from '@repo/ui/Button'
+import { Card } from '@repo/ui/Card'
+import { LoadingCard } from './components/LoadingCard'
 
-// Assets
-import viteLogo from '/vite.svg'
-import reactLogo from '/react.svg'
+const TraineeDashboard = lazy(() =>
+  import('./features/dashboard/TraineeDashboard').then(m => ({ default: m.TraineeDashboard }))
+)
+const WorkoutForm = lazy(() =>
+  import('./features/workouts/WorkoutForm').then(m => ({ default: m.WorkoutForm }))
+)
+const RecoveryForm = lazy(() =>
+  import('./features/recovery/RecoveryForm').then(m => ({ default: m.RecoveryForm }))
+)
+const HistoryTimeline = lazy(() =>
+  import('./features/timeline/HistoryTimeline').then(m => ({ default: m.HistoryTimeline }))
+)
+const DailyCheckIn = lazy(() =>
+  import('./features/checkin/DailyCheckIn').then(m => ({ default: m.DailyCheckIn }))
+)
+const TeamAccessManager = lazy(() =>
+  import('./features/team/TeamAccessManager').then(m => ({ default: m.TeamAccessManager }))
+)
+const InviteAcceptance = lazy(() =>
+  import('./features/team/InviteAcceptance').then(m => ({ default: m.InviteAcceptance }))
+)
+const ProfessionalClientView = lazy(() =>
+  import('./features/team/ProfessionalClientView').then(m => ({
+    default: m.ProfessionalClientView,
+  }))
+)
+const ProgressMeasurementForm = lazy(() =>
+  import('./features/progress/ProgressMeasurementForm').then(m => ({
+    default: m.ProgressMeasurementForm,
+  }))
+)
+const ProgressAnalyticsPage = lazy(() =>
+  import('./features/progress/ProgressAnalyticsPage').then(m => ({
+    default: m.ProgressAnalyticsPage,
+  }))
+)
+const WearableSummaryForm = lazy(() =>
+  import('./features/wearables/WearableSummaryForm').then(m => ({ default: m.WearableSummaryForm }))
+)
+const WearableSyncImportPage = lazy(() =>
+  import('./features/wearables/WearableSyncImportPage').then(m => ({
+    default: m.WearableSyncImportPage,
+  }))
+)
+const ProUpgradePage = lazy(() =>
+  import('./features/billing/ProUpgradePage').then(m => ({ default: m.ProUpgradePage }))
+)
+const ProfessionalSessions = lazy(() =>
+  import('./features/sessions/ProfessionalSessions').then(m => ({
+    default: m.ProfessionalSessions,
+  }))
+)
 
-/**
- * Main App Component
- *
- * This is the "main stage" of our application. Everything you see
- * in the browser starts here!
- */
-export function App() {
-  // React State - like a scoreboard that updates the display automatically
-  const [count, setCount] = useState(0)
+type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
+type UserPlan = 'free' | 'pro'
+
+type ProfileRecord = {
+  uid: string
+  email: string
+  displayName: string
+  role: UserRole | null
+  plan: UserPlan
+}
+
+const PLAN_OPTIONS: Array<{ value: UserPlan; label: string; description: string }> = [
+  { value: 'free', label: 'Free', description: 'Core logging and history.' },
+  { value: 'pro', label: 'Pro', description: 'Analytics, wearables, and team features.' },
+]
+
+const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
+  { value: 'trainee', label: 'Trainee' },
+  { value: 'trainer', label: 'Trainer' },
+  { value: 'nutritionist', label: 'Nutritionist / Dietitian' },
+  { value: 'counsellor', label: 'Counsellor' },
+]
+
+function AuthScreen() {
+  const navigate = useNavigate()
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [selectedRole, setSelectedRole] = useState<UserRole>('trainee')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const roleHighlights: Record<UserRole, string> = {
+    trainee: 'Track workouts, recovery, nutrition, and wellbeing.',
+    trainer: 'Review shared training and recovery trends from clients.',
+    nutritionist: 'Review meal habits, hydration, and nutrition notes.',
+    counsellor: 'Review mood, stress, sleep, and wellbeing patterns.',
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      if (mode === 'signup') {
+        const credentials = await createUserWithEmailAndPassword(auth, email.trim(), password)
+        if (displayName.trim()) {
+          await updateProfile(credentials.user, { displayName: displayName.trim() })
+        }
+
+        await setDoc(
+          doc(db, 'users', credentials.user.uid),
+          {
+            uid: credentials.user.uid,
+            email: credentials.user.email ?? email.trim(),
+            displayName: displayName.trim(),
+            role: selectedRole,
+            plan: 'free',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+
+        if (selectedRole === 'trainee') {
+          await setDoc(
+            doc(db, 'trainees', credentials.user.uid),
+            {
+              uid: credentials.user.uid,
+              ownerId: credentials.user.uid,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          )
+        }
+      } else {
+        await signInWithEmailAndPassword(auth, email.trim(), password)
+      }
+
+      navigate('/app')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Authentication failed.'
+      setError(message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      {/* 
-        Header Component from @repo/ui
-        This comes from our shared "costume closet" (packages/ui)
-        Any app in the monorepo can use this same Header!
-      */}
-      <Header title="The Hytel Way" />
+    <section className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <article className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-100 via-cyan-50 to-slate-50 p-6 shadow-sm md:p-8">
+        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-emerald-300/30 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+        <div className="relative">
+          <p className="inline-flex rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-wide text-emerald-800">
+            WELCOME TO CLEO AURA FITNESS
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+            One calm place for training, recovery, nutrition, and wellbeing
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm text-slate-700">
+            Start by choosing your role below. New accounts use this role during sign up, and
+            existing users can login right away.
+          </p>
 
-      {/* Logo Section */}
-      <div className="flex justify-center gap-8 my-8">
-        <a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noopener noreferrer">
-          <img src={reactLogo} className="logo" alt="React logo" />
-        </a>
-      </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -right-6 -top-8 h-16 w-16 rounded-full bg-emerald-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-emerald-800">Holistic Coach</p>
+              <p className="text-[11px] text-slate-600">Training · Recovery · Nutrition</p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-rose-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -left-6 -top-10 h-16 w-16 rounded-full bg-rose-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-rose-800">Human-first</p>
+              <p className="text-[11px] text-slate-600">
+                Invite trainers, counsellors, nutritionists
+              </p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-cyan-200 bg-white/80 p-3 shadow-sm">
+              <div className="absolute -right-8 -bottom-10 h-16 w-16 rounded-full bg-cyan-200/50 blur-2xl" />
+              <p className="text-xs font-semibold text-cyan-800">Calm workspace</p>
+              <p className="text-[11px] text-slate-600">Structured cards &amp; sparklines</p>
+            </div>
+          </div>
 
-      {/* Main Content Grid */}
-      <div className="max-w-4xl mx-auto grid gap-6 md:grid-cols-2">
-        {/* 
-          Interactive Counter Card
-          Demonstrates React state + Shadcn UI components
-        */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Interactive Counter</CardTitle>
-            <CardDescription>
-              Click the buttons to change the count. This demonstrates React state management - when
-              count changes, the UI updates automatically!
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <p className="text-6xl font-bold text-primary mb-6">{count}</p>
-              <div className="flex justify-center gap-4">
-                {/* 
-                  Shadcn UI Buttons
-                  These come from packages/ui/components/ui/button.tsx
-                  The "variant" prop changes the button style (like costume options!)
-                */}
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setCount(c => c - 1)}
-                  aria-label="Decrement counter"
-                >
-                  - Decrease
-                </Button>
-                <Button
-                  variant="default"
-                  size="lg"
-                  onClick={() => setCount(c => c + 1)}
-                  aria-label="Increment counter"
-                >
-                  + Increase
-                </Button>
+          <div className="hero-illustration mt-6 grid gap-3 rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
+                ✦
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  One calm place for every health pro
+                </p>
+                <p className="text-xs text-slate-600">
+                  Trainers, nutritionists, and counsellors co-managing each trainee.
+                </p>
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="justify-center">
-            <Button variant="ghost" onClick={() => setCount(0)}>
-              Reset to Zero
-            </Button>
-          </CardFooter>
-        </Card>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <span className="chip-soft bg-emerald-50 text-emerald-800">Training programs</span>
+              <span className="chip-soft bg-rose-50 text-rose-800">Nutrition rhythms</span>
+              <span className="chip-soft bg-cyan-50 text-cyan-800">Mood &amp; recovery</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="pill-button bg-white text-emerald-900">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Invite a trainer
+              </span>
+              <span className="pill-button bg-white text-rose-900">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                Share wellbeing
+              </span>
+              <span className="pill-button bg-white text-cyan-900">
+                <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                Sync wearables
+              </span>
+            </div>
+            <div className="hero-figure" aria-hidden="true" />
+          </div>
 
-        {/* 
-          Stack Info Card
-          Educational content about the monorepo structure
-        */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Stack Overview</CardTitle>
-            <CardDescription>
-              What powers this template? Here's the cast of characters!
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>pnpm</strong> - Fast, disk-efficient package manager
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>Turborepo</strong> - Smart monorepo build system
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>React + Vite</strong> - Fast UI development
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>Tailwind + Shadcn</strong> - Beautiful styling
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>tRPC</strong> - Type-safe API layer
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div>
-                <strong>TanStack Query</strong> - Server state management
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            {ROLE_OPTIONS.map(option => (
+              <button
+                className={`rounded-xl border px-3 py-3 text-left transition ${
+                  selectedRole === option.value
+                    ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                    : 'border-slate-200 bg-white/70 hover:border-slate-300'
+                }`}
+                key={option.value}
+                onClick={() => setSelectedRole(option.value)}
+                type="button"
+              >
+                <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                <p className="mt-1 text-xs text-slate-600">{roleHighlights[option.value]}</p>
+              </button>
+            ))}
+          </div>
 
-        {/* 
-          Monorepo Structure Card
-        */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Monorepo Structure</CardTitle>
-            <CardDescription>Where to find things in this project</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 text-sm font-mono">
-              <div>
-                <h4 className="font-bold text-primary mb-2">apps/</h4>
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>
-                    |-- web/ <span className="text-xs">(this React app)</span>
-                  </li>
-                  <li>
-                    |-- functions/ <span className="text-xs">(tRPC backend)</span>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-bold text-primary mb-2">packages/</h4>
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>
-                    |-- ui/ <span className="text-xs">(shared components)</span>
-                  </li>
-                  <li>
-                    |-- shared/ <span className="text-xs">(Zod schemas)</span>
-                  </li>
-                  <li>
-                    |-- config/ <span className="text-xs">(TypeScript config)</span>
-                  </li>
-                </ul>
-              </div>
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Low friction</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Daily check-ins are designed for under one minute.
+              </p>
             </div>
-          </CardContent>
-          <CardFooter className="justify-center gap-4">
-            <a href="https://turbo.build/repo/docs" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary">Turborepo Docs</Button>
-            </a>
-            <a href="https://ui.shadcn.com" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary">Shadcn UI Docs</Button>
-            </a>
-          </CardFooter>
-        </Card>
-      </div>
+            <div className="rounded-xl border border-cyan-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Private by default</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Trainees control exactly what professionals can view.
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
+              <p className="text-sm font-semibold text-slate-900">Built for progress</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Workouts, recovery, nutrition, and wellbeing stay connected.
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
 
-      {/* Footer */}
-      <p className="text-center text-muted-foreground mt-8 text-sm">
-        Edit <code className="bg-muted px-1 rounded">apps/web/src/App.tsx</code> and save to see hot
-        reload in action!
+      <article className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
+          <button
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              mode === 'login' ? 'bg-white shadow-sm' : 'text-slate-600'
+            }`}
+            onClick={() => setMode('login')}
+            type="button"
+          >
+            Login
+          </button>
+          <button
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              mode === 'signup' ? 'bg-white shadow-sm' : 'text-slate-600'
+            }`}
+            onClick={() => setMode('signup')}
+            type="button"
+          >
+            Sign up
+          </button>
+        </div>
+
+        <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            Selected role:{' '}
+            <span className="font-semibold">
+              {ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}
+            </span>
+          </p>
+          {mode === 'signup' ? (
+            <>
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                Signing up as{' '}
+                <span className="font-semibold">
+                  {ROLE_OPTIONS.find(o => o.value === selectedRole)?.label}
+                </span>
+              </p>
+              <label className="grid gap-1 text-sm">
+                Display name
+                <input
+                  className="rounded border px-3 py-2"
+                  onChange={event => setDisplayName(event.target.value)}
+                  placeholder="Your name"
+                  required
+                  value={displayName}
+                />
+              </label>
+            </>
+          ) : null}
+
+          <label className="grid gap-1 text-sm">
+            Email
+            <input
+              className="rounded border px-3 py-2"
+              onChange={event => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              required
+              type="email"
+              value={email}
+            />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            Password
+            <input
+              className="rounded border px-3 py-2"
+              minLength={6}
+              onChange={event => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <Button disabled={isSubmitting} type="submit">
+            {isSubmitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Login'}
+          </Button>
+
+          <p className="text-xs text-slate-500">
+            {mode === 'signup'
+              ? 'Role is assigned at sign up and controls your default app experience.'
+              : 'If you are new, switch to Sign up to create your account with the selected role.'}
+          </p>
+        </form>
+      </article>
+    </section>
+  )
+}
+
+function RoleSelectionScreen({
+  user,
+  profile,
+  onRoleAssigned,
+}: {
+  user: User
+  profile: ProfileRecord
+  onRoleAssigned: (role: UserRole) => void
+}) {
+  const navigate = useNavigate()
+  const [selectedRole, setSelectedRole] = useState<UserRole>('trainee')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function saveRole() {
+    if (profile.role) {
+      setError('Role is already set and cannot be changed here.')
+      return
+    }
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      const userRef = doc(db, 'users', user.uid)
+      await updateDoc(userRef, {
+        role: selectedRole,
+        updatedAt: serverTimestamp(),
+      })
+
+      if (selectedRole === 'trainee') {
+        const traineeRef = doc(db, 'trainees', user.uid)
+        const traineeSnapshot = await getDoc(traineeRef)
+
+        if (!traineeSnapshot.exists()) {
+          await setDoc(traineeRef, {
+            uid: user.uid,
+            ownerId: user.uid,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+        }
+      }
+
+      onRoleAssigned(selectedRole)
+      navigate('/app')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Unable to save role.'
+      setError(message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Card className="mx-auto w-full max-w-xl p-6">
+      <h1 className="text-2xl font-semibold">Choose your role</h1>
+      <p className="mt-2 text-sm text-slate-600">
+        This is a one-time selection. Role changes require admin migration rules.
       </p>
+
+      <div className="mt-4 grid gap-2">
+        {ROLE_OPTIONS.map(option => (
+          <button
+            className={`rounded border px-3 py-2 text-left ${
+              selectedRole === option.value
+                ? 'border-emerald-600 bg-emerald-50'
+                : 'border-slate-200'
+            }`}
+            key={option.value}
+            onClick={() => setSelectedRole(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+
+      <Button className="mt-4" disabled={isSaving} onClick={saveRole} type="button">
+        {isSaving ? 'Saving role...' : 'Save role'}
+      </Button>
+    </Card>
+  )
+}
+
+function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
+  async function logout() {
+    await signOut(auth)
+  }
+
+  const isTrainee = profile.role === 'trainee'
+  const isProfessional =
+    profile.role === 'trainer' || profile.role === 'nutritionist' || profile.role === 'counsellor'
+  const hasProPlan = profile.plan === 'pro'
+
+  if (!profile.role) {
+    return <Navigate replace to="/role-select" />
+  }
+
+  const navPrimary =
+    'rounded-full px-3 py-1.5 text-sm font-semibold border border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100'
+  const navGhost =
+    'rounded-full px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-100 border border-transparent'
+
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-5">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Cleo Aura Fitness</h1>
+            <p className="text-sm text-slate-600">Signed in as {user.email}</p>
+            <p className="text-xs text-slate-500">Plan: {profile.plan.toUpperCase()}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {profile.role ? profile.role.toUpperCase() : 'ROLE'}
+            </span>
+            <Button variant="outline" onClick={logout} type="button">
+              Logout
+            </Button>
+          </div>
+        </div>
+        <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+          <Link className={navGhost} to="/app">
+            Home
+          </Link>
+          {isTrainee ? (
+            <>
+              <Link className={navPrimary} to="/app/workouts/new">
+                Log Workout
+              </Link>
+              <Link className={navGhost} to="/app/recovery/new">
+                Log Recovery
+              </Link>
+              <Link className={navGhost} to="/app/check-in">
+                Daily Check-In
+              </Link>
+              <Link className={navGhost} to="/app/progress/new">
+                Log Progress
+              </Link>
+              <Link className={navGhost} to="/app/analytics">
+                Analytics
+              </Link>
+              <Link className={navGhost} to="/app/wearables/new">
+                Wearables
+              </Link>
+              <Link className={navGhost} to="/app/wearables/import">
+                Health Sync
+              </Link>
+              <Link className={navPrimary} to="/app/team">
+                Team
+              </Link>
+              {!hasProPlan ? (
+                <Link className={navGhost} to="/app/upgrade">
+                  Upgrade
+                </Link>
+              ) : null}
+            </>
+          ) : null}
+          {isProfessional ? (
+            <>
+              <Link className={navPrimary} to="/app/invite">
+                Accept Invite
+              </Link>
+              <Link className={navGhost} to="/app/sessions">
+                Sessions
+              </Link>
+            </>
+          ) : null}
+          {isTrainee ? (
+            <Link className={navGhost} to="/app/history">
+              History
+            </Link>
+          ) : null}
+          <Link className={navGhost} to="/app/settings">
+            Settings
+          </Link>
+        </nav>
+      </Card>
+
+      <Outlet context={{ user, profile }} />
     </div>
   )
+}
+
+function SettingsScreen({
+  user,
+  profile,
+  onProfileUpdated,
+}: {
+  user: User
+  profile: ProfileRecord
+  onProfileUpdated: (displayName: string, plan?: UserPlan) => void
+}) {
+  const [displayName, setDisplayName] = useState(profile.displayName)
+  const [isSavingName, setIsSavingName] = useState(false)
+  const [isSavingPlan, setIsSavingPlan] = useState(false)
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDisplayName(profile.displayName)
+  }, [profile.displayName])
+  const roleLabel = useMemo(() => {
+    const option = ROLE_OPTIONS.find(candidate => candidate.value === profile.role)
+    return option?.label ?? 'Unknown'
+  }, [profile.role])
+
+  async function saveDisplayName() {
+    const nextName = displayName.trim()
+    if (!nextName) {
+      setSettingsMessage('Display name cannot be empty.')
+      return
+    }
+
+    setIsSavingName(true)
+    setSettingsMessage(null)
+
+    try {
+      await updateProfile(user, { displayName: nextName })
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: nextName,
+        updatedAt: serverTimestamp(),
+      })
+
+      onProfileUpdated(nextName)
+      setSettingsMessage('Display name updated.')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Unable to update display name.'
+      setSettingsMessage(message)
+    } finally {
+      setIsSavingName(false)
+    }
+  }
+
+  async function savePlan() {
+    if (profile.plan !== 'pro') return
+    setIsSavingPlan(true)
+    setSettingsMessage(null)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        plan: 'free',
+        updatedAt: serverTimestamp(),
+      })
+      onProfileUpdated(displayName, 'free')
+      setSettingsMessage('Plan downgraded to FREE.')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Unable to update plan.'
+      setSettingsMessage(message)
+    } finally {
+      setIsSavingPlan(false)
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-xl font-semibold">Account settings</h2>
+      <p className="mt-2 text-sm text-slate-600">
+        Role: {roleLabel} (immutable after first selection)
+      </p>
+      <p className="mt-1 text-sm text-slate-600">Current plan: {profile.plan.toUpperCase()}</p>
+
+      <label className="mt-4 grid gap-1 text-sm">
+        Display name
+        <input
+          className="rounded border px-3 py-2"
+          onChange={event => setDisplayName(event.target.value)}
+          value={displayName}
+        />
+      </label>
+
+      <div className="mt-3 flex gap-2">
+        <Button disabled={isSavingName} onClick={saveDisplayName} type="button">
+          {isSavingName ? 'Saving...' : 'Update display name'}
+        </Button>
+        <Link className="rounded border px-3 py-2 text-sm" to="/app">
+          Back to home
+        </Link>
+      </div>
+
+      <div className="mt-5 space-y-2 rounded-lg border bg-slate-50 p-3">
+        <p className="text-sm font-medium">Plan</p>
+        <div className="grid gap-2 text-sm text-slate-600">
+          {PLAN_OPTIONS.map(option => (
+            <p key={option.value}>
+              <span className="font-medium text-slate-900">{option.label}</span>:{' '}
+              {option.description}
+            </p>
+          ))}
+        </div>
+        {profile.plan === 'free' ? (
+          <Link
+            className="inline-block rounded border px-3 py-2 text-sm hover:bg-white"
+            to="/app/upgrade"
+          >
+            Open Pro Payment Page
+          </Link>
+        ) : (
+          <Button variant="outline" disabled={isSavingPlan} onClick={savePlan} type="button">
+            {isSavingPlan ? 'Saving plan...' : 'Downgrade to Free'}
+          </Button>
+        )}
+      </div>
+
+      {settingsMessage ? <p className="mt-2 text-sm text-slate-600">{settingsMessage}</p> : null}
+    </Card>
+  )
+}
+
+function MilestoneOneApp() {
+  const [authLoading, setAuthLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [authUser, setAuthUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<ProfileRecord | null>(null)
+  const [appError, setAppError] = useState<string | null>(null)
+
+  useEffect(() => {
+    initMonitoring()
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setAuthUser(user)
+      setMonitoringUser(user ? { uid: user.uid, email: user.email } : null)
+      if (user) {
+        initErrorReporter(user.email)
+      }
+      setAuthLoading(false)
+    })
+
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    async function bootstrapProfile(currentUser: User) {
+      setProfileLoading(true)
+      setAppError(null)
+
+      try {
+        const userRef = doc(db, 'users', currentUser.uid)
+        const snapshot = await getDoc(userRef)
+
+        if (snapshot.exists()) {
+          const data = snapshot.data() as Partial<ProfileRecord>
+          const resolvedPlan: UserPlan = data.plan === 'pro' ? 'pro' : 'free'
+          setProfile({
+            uid: currentUser.uid,
+            email: currentUser.email ?? '',
+            displayName:
+              typeof data.displayName === 'string'
+                ? data.displayName
+                : currentUser.displayName ?? '',
+            role: (data.role as UserRole | null) ?? null,
+            plan: resolvedPlan,
+          })
+          if (data.plan !== 'free' && data.plan !== 'pro') {
+            await updateDoc(userRef, {
+              plan: 'free',
+              updatedAt: serverTimestamp(),
+            })
+          }
+        } else {
+          const createdProfile: ProfileRecord = {
+            uid: currentUser.uid,
+            email: currentUser.email ?? '',
+            displayName: currentUser.displayName ?? '',
+            role: null,
+            plan: 'free',
+          }
+
+          await setDoc(userRef, {
+            ...createdProfile,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+
+          setProfile(createdProfile)
+        }
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : 'Failed to load user profile.'
+        setAppError(message)
+        void captureError({
+          source: 'manual',
+          message,
+          stack: caught instanceof Error ? caught.stack : undefined,
+          extra: 'profile-bootstrap',
+        })
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    if (!authUser) {
+      setProfile(null)
+      setProfileLoading(false)
+      return
+    }
+
+    void bootstrapProfile(authUser)
+  }, [authUser])
+
+  if (!hasFirebaseConfig) {
+    return (
+      <main className="mx-auto mt-10 max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
+        Firebase config is missing. Add Vite env vars for auth and Firestore before running
+        Milestone 1.
+      </main>
+    )
+  }
+
+  if (authLoading || profileLoading) {
+    return <main className="p-6 text-center text-sm text-slate-600">Loading...</main>
+  }
+
+  return (
+    <BrowserRouter>
+      <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+        {appError ? (
+          <div className="mx-auto mb-4 w-full max-w-3xl rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {appError}
+          </div>
+        ) : null}
+
+        <Suspense
+          fallback={
+            <div className="mx-auto w-full max-w-3xl">
+              <LoadingCard lines={4} />
+            </div>
+          }
+        >
+          <Routes>
+            <Route
+              element={authUser ? <Navigate replace to="/app" /> : <AuthScreen />}
+              path="/auth"
+            />
+            <Route
+              element={
+                authUser && profile ? (
+                  <RoleSelectionScreen
+                    onRoleAssigned={role =>
+                      setProfile(current => (current ? { ...current, role } : current))
+                    }
+                    profile={profile}
+                    user={authUser}
+                  />
+                ) : (
+                  <Navigate replace to="/auth" />
+                )
+              }
+              path="/role-select"
+            />
+            <Route
+              element={
+                authUser && profile ? (
+                  <AppShell profile={profile} user={authUser} />
+                ) : (
+                  <Navigate replace to="/auth" />
+                )
+              }
+              path="/app"
+            >
+              <Route index element={<TraineeDashboard />} />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? <WorkoutForm /> : <Navigate replace to="/app" />
+                }
+                path="workouts/new"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? <RecoveryForm /> : <Navigate replace to="/app" />
+                }
+                path="recovery/new"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? <DailyCheckIn /> : <Navigate replace to="/app" />
+                }
+                path="check-in"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? (
+                    <ProgressMeasurementForm />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="progress/new"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                    <ProgressAnalyticsPage />
+                  ) : (
+                    <Navigate replace to="/app/settings" />
+                  )
+                }
+                path="analytics"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                    <WearableSummaryForm />
+                  ) : (
+                    <Navigate replace to="/app/settings" />
+                  )
+                }
+                path="wearables/new"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                    <WearableSyncImportPage />
+                  ) : (
+                    <Navigate replace to="/app/settings" />
+                  )
+                }
+                path="wearables/import"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? (
+                    <TeamAccessManager />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="team"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? (
+                    <ProUpgradePage
+                      onPlanUpdated={plan =>
+                        setProfile(current => (current ? { ...current, plan } : current))
+                      }
+                      profile={profile}
+                      user={authUser!}
+                    />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="upgrade"
+              />
+              <Route
+                element={
+                  profile?.role && profile.role !== 'trainee' ? (
+                    <InviteAcceptance />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="invite"
+              />
+              <Route
+                element={
+                  profile?.role && profile.role !== 'trainee' ? (
+                    <ProfessionalSessions />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="sessions"
+              />
+              <Route
+                element={
+                  profile?.role && profile.role !== 'trainee' ? (
+                    <ProfessionalClientView />
+                  ) : (
+                    <Navigate replace to="/app" />
+                  )
+                }
+                path="client/:traineeId"
+              />
+              <Route
+                element={
+                  profile?.role === 'trainee' ? <HistoryTimeline /> : <Navigate replace to="/app" />
+                }
+                path="history"
+              />
+              <Route
+                element={
+                  <SettingsScreen
+                    onProfileUpdated={(displayName, plan) =>
+                      setProfile(current =>
+                        current ? { ...current, displayName, plan: plan ?? current.plan } : current
+                      )
+                    }
+                    profile={profile!}
+                    user={authUser!}
+                  />
+                }
+                path="settings"
+              />
+            </Route>
+            <Route
+              element={
+                authUser && profile ? (
+                  <Navigate replace to="/app/settings" />
+                ) : (
+                  <Navigate replace to="/auth" />
+                )
+              }
+              path="/settings"
+            />
+            <Route element={<Navigate replace to={authUser ? '/app' : '/auth'} />} path="*" />
+          </Routes>
+        </Suspense>
+      </main>
+    </BrowserRouter>
+  )
+}
+
+export function App() {
+  return <MilestoneOneApp />
 }

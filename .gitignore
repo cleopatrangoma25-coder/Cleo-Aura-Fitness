@@ -87,3 +87,6 @@ database-debug.log
 server/dist
 public/dist
 *.pem
+.claude/
+apps/web/test-results/
+nul
