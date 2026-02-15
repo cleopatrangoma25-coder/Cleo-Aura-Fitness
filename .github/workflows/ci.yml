@@ -38,7 +38,7 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit & component tests (web)
-        run: pnpm --filter web test -- --reporter=basic
+        run: pnpm --filter web test -- --reporter=basic --coverage --reporter=json --outputFile=apps/web/coverage/vitest-report.json
 
       - name: Firestore rules tests
         env:
@@ -48,3 +48,8 @@ jobs:
 
       - name: Security audit (production deps)
         run: pnpm audit:ci
+
+      - name: Publish test & coverage summary
+        if: always()
+        run: |
+          node -e "const fs=require('fs'); const summaryPath='apps/web/coverage/vitest-report.json'; const covPath='apps/web/coverage/coverage-summary.json'; let tests='(no test report found)'; try { const data=JSON.parse(fs.readFileSync(summaryPath,'utf8')); const totals=data?.testResults?.reduce((acc,suite)=>{acc.total+=(suite.numFailingTests+suite.numPassingTests+suite.numPendingTests+suite.numTodoTests); acc.passed+=suite.numPassingTests; acc.failed+=suite.numFailingTests; acc.skipped+=(suite.numPendingTests+suite.numTodoTests); return acc;},{total:0,passed:0,failed:0,skipped:0}); tests=`Tests: ${totals.passed}/${totals.total} passed, ${totals.failed} failed, ${totals.skipped} skipped`; } catch(e) { tests='Tests: summary not generated'; } let cov='Coverage: summary not generated'; try { const covData=JSON.parse(fs.readFileSync(covPath,'utf8')).total; cov=`Coverage (web): Lines ${covData.lines.pct}% (${covData.lines.covered}/${covData.lines.total}), Branches ${covData.branches.pct}%, Functions ${covData.functions.pct}%, Statements ${covData.statements.pct}%`; } catch(e) {} const out=`## Web Tests & Coverage\n${tests}\n${cov}\n`; fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);"

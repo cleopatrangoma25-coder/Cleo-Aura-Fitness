@@ -1,41 +1,41 @@
 import { describe, expect, it, vi } from 'vitest'
 import { SessionService } from './SessionService'
 
-let addDocMock: ReturnType<typeof vi.fn>
-let getDocsMock: ReturnType<typeof vi.fn>
-let collectionMock: ReturnType<typeof vi.fn>
-let queryMock: ReturnType<typeof vi.fn>
-let orderByMock: ReturnType<typeof vi.fn>
-let whereMock: ReturnType<typeof vi.fn>
-let serverTimestampMock: ReturnType<typeof vi.fn>
-let timestampNowMock: ReturnType<typeof vi.fn>
-let timestampFromDateMock: ReturnType<typeof vi.fn>
+const {
+  addDocMock,
+  getDocsMock,
+  collectionMock,
+  queryMock,
+  orderByMock,
+  whereMock,
+  serverTimestampMock,
+  timestampNowMock,
+  timestampFromDateMock,
+} = vi.hoisted(() => ({
+  addDocMock: vi.fn(),
+  getDocsMock: vi.fn(),
+  collectionMock: vi.fn(() => 'collection'),
+  queryMock: vi.fn((_c, ...args) => ({ queryArgs: args })),
+  orderByMock: vi.fn(arg => ({ orderBy: arg })),
+  whereMock: vi.fn(arg => ({ where: arg })),
+  serverTimestampMock: vi.fn(() => 'server-ts'),
+  timestampNowMock: vi.fn(() => ({ now: true })),
+  timestampFromDateMock: vi.fn(date => ({ fromDate: date })),
+}))
 
-vi.mock('firebase/firestore', () => {
-  addDocMock = vi.fn()
-  getDocsMock = vi.fn()
-  collectionMock = vi.fn(() => 'collection')
-  queryMock = vi.fn((_c, ...args) => ({ queryArgs: args }))
-  orderByMock = vi.fn(arg => ({ orderBy: arg }))
-  whereMock = vi.fn(arg => ({ where: arg }))
-  serverTimestampMock = vi.fn(() => 'server-ts')
-  timestampNowMock = vi.fn(() => ({ now: true }))
-  timestampFromDateMock = vi.fn(date => ({ fromDate: date }))
-
-  return {
-    addDoc: addDocMock,
-    getDocs: getDocsMock,
-    collection: collectionMock,
-    query: queryMock,
-    orderBy: orderByMock,
-    where: whereMock,
-    serverTimestamp: serverTimestampMock,
-    Timestamp: {
-      now: timestampNowMock,
-      fromDate: timestampFromDateMock,
-    },
-  }
-})
+vi.mock('firebase/firestore', () => ({
+  addDoc: addDocMock,
+  getDocs: getDocsMock,
+  collection: collectionMock,
+  query: queryMock,
+  orderBy: orderByMock,
+  where: whereMock,
+  serverTimestamp: serverTimestampMock,
+  Timestamp: {
+    now: timestampNowMock,
+    fromDate: timestampFromDateMock,
+  },
+}))
 
 describe('SessionService', () => {
   const service = new SessionService({} as never)
