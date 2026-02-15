@@ -242,6 +242,18 @@ export async function acceptInvite(params: {
   user: { uid: string; email: string; displayName: string; role: ProfessionalRole }
 }): Promise<void> {
   const { firestore, traineeId, code, user } = params
+  // Ensure user profile has a role persisted so security rules recognize this professional
+  await setDoc(
+    doc(firestore, 'users', user.uid),
+    {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  )
   const inviteRef = doc(firestore, 'trainees', traineeId, 'invites', code)
   const inviteSnapshot = await getDoc(inviteRef)
 
