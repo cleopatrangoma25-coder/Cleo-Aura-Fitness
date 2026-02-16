@@ -1,65 +1,55 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Enrollment } from '../../domain/Enrollment'
 import { useServices } from '../../providers/ServiceProvider'
 
 export function useSessionEnrollments(traineeId?: string) {
   const { enrollment: enrollmentService } = useServices()
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [savingId, setSavingId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
-  const load = useCallback(async () => {
-    if (!traineeId) return
-    setLoading(true)
-    setError(null)
-    try {
-      const results = await enrollmentService.listByTrainee(traineeId)
-      setEnrollments(results)
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Failed to load enrollments.')
-    } finally {
-      setLoading(false)
-    }
-  }, [traineeId, enrollmentService])
+  const {
+    data: enrollments = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['sessionEnrollments', traineeId],
+    queryFn: () => enrollmentService.listByTrainee(traineeId!),
+    enabled: Boolean(traineeId),
+    staleTime: 30_000,
+  })
 
-  useEffect(() => {
-    if (traineeId) void load()
-  }, [traineeId, load])
-
-  const enroll = useCallback(
-    async (sessionId: string) => {
-      if (!traineeId) return
-      setSavingId(sessionId)
-      setError(null)
-      try {
-        await enrollmentService.enroll(sessionId, traineeId)
-        await load()
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : 'Could not enroll in session.')
-      } finally {
-        setSavingId(null)
-      }
+  const {
+    mutateAsync: enroll,
+    isPending: enrolling,
+    variables: enrollingSessionId,
+  } = useMutation({
+    mutationFn: (sessionId: string) => enrollmentService.enroll(sessionId, traineeId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['sessionEnrollments', traineeId] })
     },
-    [traineeId, load, enrollmentService]
-  )
+  })
 
-  const cancel = useCallback(
-    async (sessionId: string) => {
-      if (!traineeId) return
-      setSavingId(sessionId)
-      setError(null)
-      try {
-        await enrollmentService.cancel(sessionId, traineeId)
-        await load()
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : 'Could not cancel enrollment.')
-      } finally {
-        setSavingId(null)
-      }
+  const {
+    mutateAsync: cancel,
+    isPending: cancelling,
+    variables: cancellingSessionId,
+  } = useMutation({
+    mutationFn: (sessionId: string) => enrollmentService.cancel(sessionId, traineeId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['sessionEnrollments', traineeId] })
     },
-    [traineeId, load, enrollmentService]
-  )
+  })
 
-  return { enrollments, loading, error, savingId, enroll, cancel, reload: load }
+  const savingId =
+    enrollingSessionId ?? cancellingSessionId ?? (enrolling || cancelling ? 'loading' : null)
+
+  return {
+    enrollments,
+    loading,
+    error: error ? (error instanceof Error ? error.message : 'Failed to load enrollments.') : null,
+    savingId,
+    enroll,
+    cancel,
+    reload: refetch,
+  }
 }

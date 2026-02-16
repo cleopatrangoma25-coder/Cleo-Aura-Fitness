@@ -10,6 +10,7 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import { Session, type SessionDraft } from '../domain/Session'
+import { sessionDraftSchema } from '@repo/shared'
 
 export class SessionService {
   constructor(private readonly db: Firestore) {}
@@ -26,17 +27,18 @@ export class SessionService {
   }
 
   async create(draft: SessionDraft): Promise<void> {
-    const scheduled = Timestamp.fromDate(draft.scheduledAt)
+    const validated = sessionDraftSchema.parse(draft)
+    const scheduled = Timestamp.fromDate(validated.scheduledAt)
     await addDoc(collection(this.db, 'sessions'), {
-      title: draft.title,
-      description: draft.description,
-      audience: draft.audience,
+      title: validated.title,
+      description: validated.description,
+      audience: validated.audience,
       scheduledAt: scheduled,
       createdAt: serverTimestamp(),
-      createdByUid: draft.createdByUid,
-      createdByRole: draft.createdByRole,
-      createdByName: draft.createdByName,
-      isDefault: draft.isDefault ?? false,
+      createdByUid: validated.createdByUid,
+      createdByRole: validated.createdByRole,
+      createdByName: validated.createdByName,
+      isDefault: validated.isDefault ?? false,
     })
   }
 }

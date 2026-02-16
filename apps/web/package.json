@@ -37,14 +37,15 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
-    "zod": "^3.25.7",
     "eslint": "^8.57.0",
+    "eslint-plugin-jsx-a11y": "^6.10.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "5.5.4",
     "vite": "^5.1.4",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "zod": "^3.25.7"
   }
 }

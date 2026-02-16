@@ -11,6 +11,7 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import { Enrollment } from '../domain/Enrollment'
+import { enrollmentSchema } from '@repo/shared'
 
 export class EnrollmentService {
   constructor(private readonly db: Firestore) {}
@@ -27,16 +28,18 @@ export class EnrollmentService {
   }
 
   async enroll(sessionId: string, traineeId: string): Promise<void> {
-    const enrollmentId = `${sessionId}_${traineeId}`
+    const validated = enrollmentSchema.parse({ sessionId, traineeId })
+    const enrollmentId = `${validated.sessionId}_${validated.traineeId}`
     await setDoc(doc(this.db, 'sessionEnrollments', enrollmentId), {
-      sessionId,
-      traineeId,
+      sessionId: validated.sessionId,
+      traineeId: validated.traineeId,
       createdAt: serverTimestamp(),
     })
   }
 
   async cancel(sessionId: string, traineeId: string): Promise<void> {
-    const enrollmentId = `${sessionId}_${traineeId}`
+    const validated = enrollmentSchema.parse({ sessionId, traineeId })
+    const enrollmentId = `${validated.sessionId}_${validated.traineeId}`
     await deleteDoc(doc(this.db, 'sessionEnrollments', enrollmentId))
   }
 }

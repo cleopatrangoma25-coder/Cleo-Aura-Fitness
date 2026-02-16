@@ -42,6 +42,8 @@ gcloud billing budgets create \
   --threshold-rule=0.8 \
   --threshold-rule=0.9 \
   --all-updates-rule-pubsub-topic=projects/cleo-aura-fitness-stage/topics/budget-alerts
+
+> After creating the policies/budget, grab a screenshot of the Cloud Monitoring dashboard + budget chart and drop it into `docs/ops/screenshots/` for quick visibility.
 ```
 
 > Apply via CI/IaC if desired; these commands are safe to run once and idempotent for the named resources.

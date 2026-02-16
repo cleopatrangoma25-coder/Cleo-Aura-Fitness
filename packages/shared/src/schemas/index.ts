@@ -70,3 +70,9 @@ export type {
   Grant,
   Invite,
 } from './team'
+
+export { sessionDraftSchema } from './session'
+export type { SessionDraftSchema } from './session'
+
+export { enrollmentSchema } from './enrollment'
+export type { EnrollmentSchema } from './enrollment'
