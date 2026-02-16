@@ -1,5 +1,23 @@
 import { FormEvent, Suspense, useEffect, useMemo, useState, lazy } from 'react'
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import {
+  Home,
+  Dumbbell,
+  Moon,
+  ClipboardCheck,
+  TrendingUp,
+  BarChart3,
+  Watch,
+  RefreshCw,
+  Users,
+  ArrowUpCircle,
+  MailPlus,
+  CalendarDays,
+  Clock,
+  Settings,
+} from 'lucide-react'
+import { PageTransition } from './components/PageTransition'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -491,36 +509,46 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
         </div>
         <nav className="mt-3 flex flex-wrap gap-2 border-t pt-3">
           <Link className={navGhost} to="/app">
+            <Home size={14} className="inline -mt-0.5 mr-1" />
             Home
           </Link>
           {isTrainee ? (
             <>
               <Link className={navPrimary} to="/app/workouts/new">
+                <Dumbbell size={14} className="inline -mt-0.5 mr-1" />
                 Log Workout
               </Link>
               <Link className={navGhost} to="/app/recovery/new">
+                <Moon size={14} className="inline -mt-0.5 mr-1" />
                 Log Recovery
               </Link>
               <Link className={navGhost} to="/app/check-in">
+                <ClipboardCheck size={14} className="inline -mt-0.5 mr-1" />
                 Daily Check-In
               </Link>
               <Link className={navGhost} to="/app/progress/new">
+                <TrendingUp size={14} className="inline -mt-0.5 mr-1" />
                 Log Progress
               </Link>
               <Link className={navGhost} to="/app/analytics">
+                <BarChart3 size={14} className="inline -mt-0.5 mr-1" />
                 Analytics
               </Link>
               <Link className={navGhost} to="/app/wearables/new">
+                <Watch size={14} className="inline -mt-0.5 mr-1" />
                 Wearables
               </Link>
               <Link className={navGhost} to="/app/wearables/import">
+                <RefreshCw size={14} className="inline -mt-0.5 mr-1" />
                 Health Sync
               </Link>
               <Link className={navPrimary} to="/app/team">
+                <Users size={14} className="inline -mt-0.5 mr-1" />
                 Team
               </Link>
               {!hasProPlan ? (
                 <Link className={navGhost} to="/app/upgrade">
+                  <ArrowUpCircle size={14} className="inline -mt-0.5 mr-1" />
                   Upgrade
                 </Link>
               ) : null}
@@ -529,19 +557,23 @@ function AppShell({ user, profile }: { user: User; profile: ProfileRecord }) {
           {isProfessional ? (
             <>
               <Link className={navPrimary} to="/app/invite">
+                <MailPlus size={14} className="inline -mt-0.5 mr-1" />
                 Accept Invite
               </Link>
               <Link className={navGhost} to="/app/sessions">
+                <CalendarDays size={14} className="inline -mt-0.5 mr-1" />
                 Sessions
               </Link>
             </>
           ) : null}
           {isTrainee ? (
             <Link className={navGhost} to="/app/history">
+              <Clock size={14} className="inline -mt-0.5 mr-1" />
               History
             </Link>
           ) : null}
           <Link className={navGhost} to="/app/settings">
+            <Settings size={14} className="inline -mt-0.5 mr-1" />
             Settings
           </Link>
         </nav>
@@ -755,11 +787,11 @@ function MilestoneOneApp() {
       }
     }
 
-  if (!authUser) {
-    setProfile(null)
-    setProfileLoading(false)
-    return
-  }
+    if (!authUser) {
+      setProfile(null)
+      setProfileLoading(false)
+      return
+    }
 
     void bootstrapProfile(authUser)
   }, [authUser])
@@ -782,7 +814,11 @@ function MilestoneOneApp() {
       <a className="skip-link" href="#app-main">
         Skip to main content
       </a>
-      <main id="app-main" className="min-h-screen bg-slate-50 p-4 md:p-8" aria-busy={authLoading || profileLoading}>
+      <main
+        id="app-main"
+        className="min-h-screen bg-slate-50 p-4 md:p-8"
+        aria-busy={authLoading || profileLoading}
+      >
         {appError ? (
           <div className="mx-auto mb-4 w-full max-w-3xl rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {appError}
@@ -796,185 +832,250 @@ function MilestoneOneApp() {
             </div>
           }
         >
-          <Routes>
-            <Route
-              element={authUser ? <Navigate replace to="/app" /> : <AuthScreen />}
-              path="/auth"
-            />
-            <Route
-              element={
-                authUser && profile ? (
-                  <RoleSelectionScreen
-                    onRoleAssigned={role =>
-                      setProfile(current => (current ? { ...current, role } : current))
-                    }
-                    profile={profile}
-                    user={authUser}
-                  />
-                ) : (
-                  <Navigate replace to="/auth" />
-                )
-              }
-              path="/role-select"
-            />
-            <Route
-              element={
-                authUser && profile ? (
-                  <AppShell profile={profile} user={authUser} />
-                ) : (
-                  <Navigate replace to="/auth" />
-                )
-              }
-              path="/app"
-            >
-              <Route index element={<TraineeDashboard />} />
+          <AnimatePresence mode="wait">
+            <Routes>
               <Route
                 element={
-                  profile?.role === 'trainee' ? <WorkoutForm /> : <Navigate replace to="/app" />
-                }
-                path="workouts/new"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? <RecoveryForm /> : <Navigate replace to="/app" />
-                }
-                path="recovery/new"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? <DailyCheckIn /> : <Navigate replace to="/app" />
-                }
-                path="check-in"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? (
-                    <ProgressMeasurementForm />
-                  ) : (
+                  authUser ? (
                     <Navigate replace to="/app" />
+                  ) : (
+                    <PageTransition>
+                      <AuthScreen />
+                    </PageTransition>
                   )
                 }
-                path="progress/new"
+                path="/auth"
               />
               <Route
                 element={
-                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
-                    <ProgressAnalyticsPage />
+                  authUser && profile ? (
+                    <PageTransition>
+                      <RoleSelectionScreen
+                        onRoleAssigned={role =>
+                          setProfile(current => (current ? { ...current, role } : current))
+                        }
+                        profile={profile}
+                        user={authUser}
+                      />
+                    </PageTransition>
                   ) : (
+                    <Navigate replace to="/auth" />
+                  )
+                }
+                path="/role-select"
+              />
+              <Route
+                element={
+                  authUser && profile ? (
+                    <AppShell profile={profile} user={authUser} />
+                  ) : (
+                    <Navigate replace to="/auth" />
+                  )
+                }
+                path="/app"
+              >
+                <Route
+                  index
+                  element={
+                    <PageTransition>
+                      <TraineeDashboard />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <WorkoutForm />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="workouts/new"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <RecoveryForm />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="recovery/new"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <DailyCheckIn />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="check-in"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <ProgressMeasurementForm />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="progress/new"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                      <PageTransition>
+                        <ProgressAnalyticsPage />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app/settings" />
+                    )
+                  }
+                  path="analytics"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                      <PageTransition>
+                        <WearableSummaryForm />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app/settings" />
+                    )
+                  }
+                  path="wearables/new"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' && profile.plan === 'pro' ? (
+                      <PageTransition>
+                        <WearableSyncImportPage />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app/settings" />
+                    )
+                  }
+                  path="wearables/import"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <TeamAccessManager />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="team"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <ProUpgradePage
+                          onPlanUpdated={plan =>
+                            setProfile(current => (current ? { ...current, plan } : current))
+                          }
+                          profile={profile}
+                          user={authUser!}
+                        />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="upgrade"
+                />
+                <Route
+                  element={
+                    profile?.role && profile.role !== 'trainee' ? (
+                      <PageTransition>
+                        <InviteAcceptance />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="invite"
+                />
+                <Route
+                  element={
+                    profile?.role && profile.role !== 'trainee' ? (
+                      <PageTransition>
+                        <ProfessionalSessions />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="sessions"
+                />
+                <Route
+                  element={
+                    profile?.role && profile.role !== 'trainee' ? (
+                      <PageTransition>
+                        <ProfessionalClientView />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="client/:traineeId"
+                />
+                <Route
+                  element={
+                    profile?.role === 'trainee' ? (
+                      <PageTransition>
+                        <HistoryTimeline />
+                      </PageTransition>
+                    ) : (
+                      <Navigate replace to="/app" />
+                    )
+                  }
+                  path="history"
+                />
+                <Route
+                  element={
+                    <PageTransition>
+                      <SettingsScreen
+                        onProfileUpdated={(displayName, plan) =>
+                          setProfile(current =>
+                            current
+                              ? { ...current, displayName, plan: plan ?? current.plan }
+                              : current
+                          )
+                        }
+                        profile={profile!}
+                        user={authUser!}
+                      />
+                    </PageTransition>
+                  }
+                  path="settings"
+                />
+              </Route>
+              <Route
+                element={
+                  authUser && profile ? (
                     <Navigate replace to="/app/settings" />
-                  )
-                }
-                path="analytics"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
-                    <WearableSummaryForm />
                   ) : (
-                    <Navigate replace to="/app/settings" />
+                    <Navigate replace to="/auth" />
                   )
                 }
-                path="wearables/new"
+                path="/settings"
               />
-              <Route
-                element={
-                  profile?.role === 'trainee' && profile.plan === 'pro' ? (
-                    <WearableSyncImportPage />
-                  ) : (
-                    <Navigate replace to="/app/settings" />
-                  )
-                }
-                path="wearables/import"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? (
-                    <TeamAccessManager />
-                  ) : (
-                    <Navigate replace to="/app" />
-                  )
-                }
-                path="team"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? (
-                    <ProUpgradePage
-                      onPlanUpdated={plan =>
-                        setProfile(current => (current ? { ...current, plan } : current))
-                      }
-                      profile={profile}
-                      user={authUser!}
-                    />
-                  ) : (
-                    <Navigate replace to="/app" />
-                  )
-                }
-                path="upgrade"
-              />
-              <Route
-                element={
-                  profile?.role && profile.role !== 'trainee' ? (
-                    <InviteAcceptance />
-                  ) : (
-                    <Navigate replace to="/app" />
-                  )
-                }
-                path="invite"
-              />
-              <Route
-                element={
-                  profile?.role && profile.role !== 'trainee' ? (
-                    <ProfessionalSessions />
-                  ) : (
-                    <Navigate replace to="/app" />
-                  )
-                }
-                path="sessions"
-              />
-              <Route
-                element={
-                  profile?.role && profile.role !== 'trainee' ? (
-                    <ProfessionalClientView />
-                  ) : (
-                    <Navigate replace to="/app" />
-                  )
-                }
-                path="client/:traineeId"
-              />
-              <Route
-                element={
-                  profile?.role === 'trainee' ? <HistoryTimeline /> : <Navigate replace to="/app" />
-                }
-                path="history"
-              />
-              <Route
-                element={
-                  <SettingsScreen
-                    onProfileUpdated={(displayName, plan) =>
-                      setProfile(current =>
-                        current ? { ...current, displayName, plan: plan ?? current.plan } : current
-                      )
-                    }
-                    profile={profile!}
-                    user={authUser!}
-                  />
-                }
-                path="settings"
-              />
-            </Route>
-            <Route
-              element={
-                authUser && profile ? (
-                  <Navigate replace to="/app/settings" />
-                ) : (
-                  <Navigate replace to="/auth" />
-                )
-              }
-              path="/settings"
-            />
-            <Route element={<Navigate replace to={authUser ? '/app' : '/auth'} />} path="*" />
-          </Routes>
+              <Route element={<Navigate replace to={authUser ? '/app' : '/auth'} />} path="*" />
+            </Routes>
+          </AnimatePresence>
         </Suspense>
       </main>
     </BrowserRouter>

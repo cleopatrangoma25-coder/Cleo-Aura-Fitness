@@ -9,6 +9,7 @@ import {
   UpsertWellbeingDaySchema,
 } from '@repo/shared'
 import type { User } from 'firebase/auth'
+import { Apple, Heart, Flame, Utensils, Smile } from 'lucide-react'
 import { Button } from '@repo/ui/Button'
 import { Card } from '@repo/ui/Card'
 import { useNutritionDays } from '../nutrition/useNutritionDays'
@@ -133,22 +134,30 @@ export function DailyCheckIn() {
   return (
     <section className="space-y-4">
       <Card className="p-5">
-        <h2 className="text-xl font-semibold">Daily Check-In</h2>
+        <div className="flex items-center gap-2">
+          <Smile size={22} className="text-sky-500" />
+          <h2 className="text-xl font-semibold text-gradient">Daily Check-In</h2>
+        </div>
         <p className="mt-1 text-sm text-slate-600">
           Log nutrition and wellbeing in under a minute.
         </p>
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="p-4 text-center">
+        <Card className="p-4 text-center accent-left-emerald">
+          <Apple size={18} className="mx-auto text-emerald-500 mb-1" />
           <p className="text-2xl font-semibold">{weeklySummary.nutritionCount}/7</p>
           <p className="text-sm text-slate-600">Nutrition check-ins</p>
         </Card>
-        <Card className="p-4 text-center">
+        <Card className="p-4 text-center accent-left-violet">
+          <Heart size={18} className="mx-auto text-violet-500 mb-1" />
           <p className="text-2xl font-semibold">{weeklySummary.wellbeingCount}/7</p>
           <p className="text-sm text-slate-600">Wellbeing check-ins</p>
         </Card>
-        <Card className="p-4 text-center">
+        <Card
+          className={`p-4 text-center accent-left-amber ${weeklySummary.streak >= 3 ? 'pulse-ring' : ''}`}
+        >
+          <Flame size={18} className="mx-auto text-amber-500 mb-1" />
           <p className="text-2xl font-semibold">{weeklySummary.streak}</p>
           <p className="text-sm text-slate-600">Current streak</p>
         </Card>
@@ -167,7 +176,10 @@ export function DailyCheckIn() {
           </label>
 
           <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium">Nutrition</legend>
+            <legend className="text-sm font-medium flex items-center gap-1.5">
+              <Utensils size={14} className="text-emerald-500" />
+              Nutrition
+            </legend>
             <div className="flex flex-wrap gap-2">
               <button
                 className={`rounded border px-3 py-2 text-sm ${mealsOnTrack ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200'}`}
@@ -225,7 +237,10 @@ export function DailyCheckIn() {
           </fieldset>
 
           <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium">Wellbeing (1-5)</legend>
+            <legend className="text-sm font-medium flex items-center gap-1.5">
+              <Heart size={14} className="text-rose-500" />
+              Wellbeing (1-5)
+            </legend>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="grid gap-1 text-sm">
                 Mood
@@ -288,7 +303,11 @@ export function DailyCheckIn() {
           {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
 
           <div className="flex gap-2">
-            <Button disabled={isSaving} type="submit">
+            <Button
+              disabled={isSaving}
+              type="submit"
+              className="bg-gradient-to-r from-rose-500 to-orange-400 hover:from-rose-600 hover:to-orange-500 text-white border-0"
+            >
               {isSaving ? 'Saving...' : 'Save Check-In'}
             </Button>
             <Button variant="outline" onClick={() => navigate('/app')} type="button">

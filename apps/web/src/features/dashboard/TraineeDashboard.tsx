@@ -1,4 +1,7 @@
+import React, { memo, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Dumbbell, Moon, ClipboardCheck, TrendingUp, Sparkles, Crown } from 'lucide-react'
 import { MUSCLE_GROUP_LABELS } from '@repo/shared'
 import { Card } from '@repo/ui/Card'
 import { Button } from '@repo/ui/Button'
@@ -13,9 +16,17 @@ import { useWearablesSummary } from '../wearables/useWearablesSummary'
 import { useSessions } from '../sessions/useSessions'
 import { useSessionEnrollments } from '../sessions/useSessionEnrollments'
 import { useIncomingInvites } from '../team/useIncomingInvites'
-import { useState } from 'react'
 import { acceptInvite } from '../team/useTeamAccess'
 import { db } from '../../lib/firebase'
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+}
+const staggerItem = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0, 0, 0.58, 1] as const } },
+}
 
 function Sparkline({
   points,
@@ -39,28 +50,63 @@ function Sparkline({
     const y = height - pad - ((p.value - min) / span) * (height - pad * 2)
     return { ...p, x, y }
   })
-  const path = coords.map(c => `${c.x},${c.y}`).join(' ')
+  const linePath = coords.map(c => `${c.x},${c.y}`).join(' ')
+  const gradientId = `spark-grad-${color.replace(/[^a-zA-Z0-9]/g, '')}`
+  const areaPath =
+    coords.length > 0
+      ? `M${coords[0].x},${height - pad} ${coords.map(c => `L${c.x},${c.y}`).join(' ')} L${coords[coords.length - 1].x},${height - pad} Z`
+      : ''
   return (
-    <svg className="mt-1 h-[72px] w-full" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Trend sparkline">
-      <polyline
+    <svg
+      className="mt-1 h-[72px] w-full"
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Trend sparkline"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <motion.path
+        d={areaPath}
+        fill={`url(#${gradientId})`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      />
+      <motion.polyline
         fill="none"
-        points={path}
+        points={linePath}
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="3"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       />
-      {coords.map(c => (
-        <circle cx={c.x} cy={c.y} r="3" fill={color} key={c.label}>
+      {coords.map((c, i) => (
+        <motion.circle
+          cx={c.x}
+          cy={c.y}
+          r="3"
+          fill={color}
+          key={c.label}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.15 * i, duration: 0.25 }}
+        >
           <title>
             {c.label}: {c.value}
           </title>
-        </circle>
+        </motion.circle>
       ))}
     </svg>
   )
 }
-const MemoSparkline = React.memo(Sparkline)
+const MemoSparkline = memo(Sparkline)
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -300,7 +346,7 @@ export function TraineeDashboard() {
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-rose-200/40 blur-3xl" />
         <div className="relative">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold text-gradient">
             Welcome back{profile.displayName ? `, ${profile.displayName}` : ''}
           </h2>
           {profile.role ? (
@@ -322,40 +368,57 @@ export function TraineeDashboard() {
 
       {isTrainee ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Link
-              className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              to="/app/workouts/new"
-            >
-              <h3 className="text-lg font-semibold text-emerald-800">Log Workout</h3>
-              <p className="mt-1 text-sm text-emerald-600">
-                Track training with muscle group tagging.
-              </p>
-            </Link>
-            <Link
-              className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              to="/app/recovery/new"
-            >
-              <h3 className="text-lg font-semibold text-violet-800">Log Recovery</h3>
-              <p className="mt-1 text-sm text-violet-600">Rest days are part of your progress.</p>
-            </Link>
-            <Link
-              className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-sky-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              to="/app/check-in"
-            >
-              <h3 className="text-lg font-semibold text-sky-800">Daily Check-In</h3>
-              <p className="mt-1 text-sm text-sky-600">
-                Nutrition and wellbeing in one quick flow.
-              </p>
-            </Link>
-            <Link
-              className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-amber-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              to="/app/progress/new"
-            >
-              <h3 className="text-lg font-semibold text-amber-800">Log Progress</h3>
-              <p className="mt-1 text-sm text-amber-600">Body metrics and strength snapshots.</p>
-            </Link>
-          </div>
+          <motion.div
+            className="grid gap-3 sm:grid-cols-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.div variants={staggerItem}>
+              <Link
+                className="block rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                to="/app/workouts/new"
+              >
+                <Dumbbell size={22} className="text-emerald-600 mb-2" />
+                <h3 className="text-lg font-semibold text-emerald-800">Log Workout</h3>
+                <p className="mt-1 text-sm text-emerald-600">
+                  Track training with muscle group tagging.
+                </p>
+              </Link>
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <Link
+                className="block rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                to="/app/recovery/new"
+              >
+                <Moon size={22} className="text-violet-600 mb-2" />
+                <h3 className="text-lg font-semibold text-violet-800">Log Recovery</h3>
+                <p className="mt-1 text-sm text-violet-600">Rest days are part of your progress.</p>
+              </Link>
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <Link
+                className="block rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-sky-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                to="/app/check-in"
+              >
+                <ClipboardCheck size={22} className="text-sky-600 mb-2" />
+                <h3 className="text-lg font-semibold text-sky-800">Daily Check-In</h3>
+                <p className="mt-1 text-sm text-sky-600">
+                  Nutrition and wellbeing in one quick flow.
+                </p>
+              </Link>
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <Link
+                className="block rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-amber-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                to="/app/progress/new"
+              >
+                <TrendingUp size={22} className="text-amber-600 mb-2" />
+                <h3 className="text-lg font-semibold text-amber-800">Log Progress</h3>
+                <p className="mt-1 text-sm text-amber-600">Body metrics and strength snapshots.</p>
+              </Link>
+            </motion.div>
+          </motion.div>
 
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -448,15 +511,18 @@ export function TraineeDashboard() {
               Early milestone insights based on workouts, recovery, and measurements.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <article className="rounded border bg-slate-50 p-3">
+              <article className="rounded-lg border bg-slate-50 p-3 accent-left-emerald">
+                <Dumbbell size={16} className="text-emerald-500 mb-1" />
                 <p className="text-2xl font-semibold">{traineeInsights.workoutsPerWeek}</p>
                 <p className="text-xs text-slate-600">Avg workouts per week (last 4 weeks)</p>
               </article>
-              <article className="rounded border bg-slate-50 p-3">
+              <article className="rounded-lg border bg-slate-50 p-3 accent-left-violet">
+                <Moon size={16} className="text-violet-500 mb-1" />
                 <p className="text-2xl font-semibold">{traineeInsights.recoveryVsIntensity}</p>
                 <p className="text-xs text-slate-600">Recovery-to-intense-workout ratio</p>
               </article>
-              <article className="rounded border bg-slate-50 p-3">
+              <article className="rounded-lg border bg-slate-50 p-3 accent-left-amber">
+                <TrendingUp size={16} className="text-amber-500 mb-1" />
                 <p className="text-2xl font-semibold">
                   {progressLoading ? '...' : traineeInsights.progressCount}
                 </p>
@@ -554,17 +620,23 @@ export function TraineeDashboard() {
               )}
             </Card>
           ) : (
-            <section className="rounded-xl border bg-amber-50 p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-amber-900">Pro features available</h3>
+            <section className="shimmer rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-rose-50 p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Crown size={22} className="text-amber-500" />
+                <h3 className="text-lg font-semibold text-gradient-amber">
+                  Pro features available
+                </h3>
+                <Sparkles size={16} className="text-amber-400" />
+              </div>
               <p className="mt-1 text-sm text-amber-800">
                 Upgrade to Pro to unlock wearable summaries, advanced analytics, and team access
                 controls.
               </p>
               <Link
-                className="mt-3 inline-block rounded border border-amber-300 px-3 py-1.5 text-sm text-amber-900 hover:bg-amber-100"
-                to="/app/settings"
+                className="mt-3 inline-block rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm btn-glow hover:shadow-md transition"
+                to="/app/upgrade"
               >
-                Manage plan
+                Upgrade to Pro
               </Link>
             </section>
           )}
