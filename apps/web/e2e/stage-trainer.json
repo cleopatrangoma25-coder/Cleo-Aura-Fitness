@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "https://cleo-aura-fitness-stage.web.app",
+      "localStorage": [
+        {
+          "name": "@firebase/performance/config",
+          "value": "{\"state\":\"NO_TEMPLATE\"}"
+        },
+        {
+          "name": "@firebase/performance/configexpire",
+          "value": "1771254186864"
+        }
+      ]
+    }
+  ]
+}
