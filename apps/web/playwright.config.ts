@@ -8,6 +8,9 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:4173',
     headless: true,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    navigationTimeout: 45000,
     storageState: process.env.E2E_STORAGE,
   },
   projects: [
