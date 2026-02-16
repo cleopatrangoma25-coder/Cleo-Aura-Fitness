@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 60_000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:4173',
     headless: true,
     trace: 'on-first-retry',
   },
@@ -15,10 +15,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'pnpm preview -- --host --port 4173',
-    url: 'http://localhost:4173',
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'pnpm preview -- --host --port 4173',
+        url: 'http://localhost:4173',
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 })
