@@ -755,11 +755,11 @@ function MilestoneOneApp() {
       }
     }
 
-    if (!authUser) {
-      setProfile(null)
-      setProfileLoading(false)
-      return
-    }
+  if (!authUser) {
+    setProfile(null)
+    setProfileLoading(false)
+    return
+  }
 
     void bootstrapProfile(authUser)
   }, [authUser])
@@ -779,7 +779,10 @@ function MilestoneOneApp() {
 
   return (
     <BrowserRouter>
-      <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <a className="skip-link" href="#app-main">
+        Skip to main content
+      </a>
+      <main id="app-main" className="min-h-screen bg-slate-50 p-4 md:p-8" aria-busy={authLoading || profileLoading}>
         {appError ? (
           <div className="mx-auto mb-4 w-full max-w-3xl rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {appError}
@@ -789,7 +792,7 @@ function MilestoneOneApp() {
         <Suspense
           fallback={
             <div className="mx-auto w-full max-w-3xl">
-              <LoadingCard lines={4} />
+              <LoadingCard lines={4} ariaLabel="Loading page content" />
             </div>
           }
         >

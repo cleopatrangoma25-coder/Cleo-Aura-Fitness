@@ -41,7 +41,7 @@ function Sparkline({
   })
   const path = coords.map(c => `${c.x},${c.y}`).join(' ')
   return (
-    <svg className="mt-1 h-[72px] w-full" viewBox={`0 0 ${width} ${height}`}>
+    <svg className="mt-1 h-[72px] w-full" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Trend sparkline">
       <polyline
         fill="none"
         points={path}
@@ -60,6 +60,7 @@ function Sparkline({
     </svg>
   )
 }
+const MemoSparkline = React.memo(Sparkline)
 
 type UserRole = 'trainee' | 'trainer' | 'nutritionist' | 'counsellor'
 
@@ -393,11 +394,11 @@ export function TraineeDashboard() {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <article className="rounded border bg-white/70 p-3">
                   <p className="text-sm font-semibold text-slate-800">Weight trend</p>
-                  <Sparkline color="#ec4899" points={weightSpark} />
+                  <MemoSparkline color="#ec4899" points={weightSpark} />
                 </article>
                 <article className="rounded border bg-white/70 p-3">
                   <p className="text-sm font-semibold text-slate-800">Recent recovery streak</p>
-                  <Sparkline color="#10b981" points={recoverySpark} />
+                  <MemoSparkline color="#10b981" points={recoverySpark} />
                 </article>
                 {sessions
                   .filter(session => session.audience === 'all' || session.audience === 'trainee')
