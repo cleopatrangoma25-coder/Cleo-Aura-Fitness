@@ -238,8 +238,9 @@ Predictive burnout detection
 Professional verification workflows!!
 
 
-??? Planning & Acceptance
+📌 Planning & Acceptance
 - MVP acceptance criteria live in GitHub Issues grouped by Milestones. Create an issue per user story and attach it to the milestone; PRs should reference the issue number.
 - Roadmap: docs/roadmap.md
 - Architecture decisions: see docs/adr/0001-firebase-backend.md
+- Close-out checklist: a11y check passes, tests updated (unit + Playwright happy path), deployed to stage, risks/notes recorded in the Issue.
 

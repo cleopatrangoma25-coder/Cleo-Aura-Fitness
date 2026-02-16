@@ -61,6 +61,11 @@
     --input: 240 16% 18%;
     --ring: 335 73% 62%;
   }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
 @layer base {

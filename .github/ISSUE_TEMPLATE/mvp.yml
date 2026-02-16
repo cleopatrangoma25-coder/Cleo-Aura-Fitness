@@ -1,0 +1,38 @@
+name: "MVP Story"
+description: "Track an MVP acceptance story"
+title: "[MVP] <short title>"
+labels: ["mvp", "acceptance"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User Story
+      placeholder: "As a <role>, I want <capability> so that <benefit>."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests / Coverage
+      placeholder: "Unit, component, Playwright path(s) to update"
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks / Notes
+      placeholder: "Dependencies, edge cases, perf, a11y notes"
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Target Environment
+      options:
+        - stage
+        - prod
+    validations:
+      required: true
